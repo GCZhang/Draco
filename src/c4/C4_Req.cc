@@ -4,16 +4,12 @@
  * \author Thomas M. Evans, Geoffrey Furnish
  * \date   Thu Jun  2 09:54:02 2005
  * \brief  C4_Req member definitions.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "C4_Req.hh"
-#include "ds++/Assert.hh"
-#include <iostream>
+// #include <iostream>
 
 namespace rtt_c4 {
 
@@ -24,7 +20,6 @@ namespace rtt_c4 {
  * Register a new non blocking message request.
  */
 //---------------------------------------------------------------------------//
-
 C4_Req::C4_Req() : p(new C4_ReqRefRep) { ++p->n; }
 
 //---------------------------------------------------------------------------//
@@ -34,7 +29,6 @@ C4_Req::C4_Req() : p(new C4_ReqRefRep) { ++p->n; }
  * Attach to an existing message request.
  */
 //---------------------------------------------------------------------------//
-
 C4_Req::C4_Req(const C4_Req &req) : p(NULL) {
   if (req.inuse())
     p = req.p;
@@ -51,7 +45,6 @@ C4_Req::C4_Req(const C4_Req &req) : p(NULL) {
  * This should plug a wide class of potential programming errors.
  */
 //---------------------------------------------------------------------------//
-
 C4_Req::~C4_Req() { free_(); }
 
 //---------------------------------------------------------------------------//
@@ -62,7 +55,6 @@ C4_Req::~C4_Req() { free_(); }
  * attach to the new one.
  */
 //---------------------------------------------------------------------------//
-
 C4_Req &C4_Req::operator=(const C4_Req &req) {
   free_();
 
@@ -80,11 +72,22 @@ C4_Req &C4_Req::operator=(const C4_Req &req) {
 /*!
  * Utility for cleaning up letter in letter/envelope idiom
  */
+//----------------------------------------------------------------------------//
 /* private */
 void C4_Req::free_() {
   --p->n;
   if (p->n <= 0)
     delete p;
+}
+
+void C4_ReqRefRep::free() {
+#ifdef C4_MPI
+  if (assigned) {
+    MPI_Cancel(&r);
+    MPI_Request_free(&r);
+  }
+#endif
+  clear();
 }
 
 //---------------------------------------------------------------------------//
@@ -94,12 +97,11 @@ void C4_Req::free_() {
  * Register a new non blocking message request.
  */
 //---------------------------------------------------------------------------//
-
 C4_ReqRefRep::C4_ReqRefRep()
-    : n(0), assigned(0)
+    : n(0), assigned(false)
 #ifdef C4_MPI
       ,
-      s(MPI_Status()), r(MPI_Request())
+      r(MPI_Request())
 #endif
 {
   // empty
@@ -109,50 +111,83 @@ C4_ReqRefRep::C4_ReqRefRep()
 /*!
  * \brief Destructor.
  *
- * It is important that all existing requests are cleared before the
- * destructor is called.  We used to have a wait() in here; however, this
- * causes exception safety problems.  In any case, it is probably a bad idea
- * to clean up communication by going out of scope.
+ * It is important that all existing requests are cleared before the destructor
+ * is called.  We used to have a wait() in here; however, this causes exception
+ * safety problems.  In any case, it is probably a bad idea to clean up
+ * communication by going out of scope.
  */
 //---------------------------------------------------------------------------//
-
 C4_ReqRefRep::~C4_ReqRefRep() { /* empty */
 }
 
 //---------------------------------------------------------------------------//
-//! Wait for an asynchronous message to complete.
-//---------------------------------------------------------------------------//
-
-void C4_ReqRefRep::wait() {
-  if (assigned) {
+/*!
+ * \brief Wait for an asynchronous message to complete.
+ * \param status Status object.
+ *
+ * This function is non-const because it updates the underlying request data
+ * member.
+ */
+// ---------------------------------------------------------------------------//
 #ifdef C4_MPI
-    MPI_Wait(&r, &s);
-#endif
+
+void C4_ReqRefRep::wait(C4_Status *status) {
+  if (assigned) {
+    MPI_Status *s = MPI_STATUS_IGNORE;
+    if (status) {
+      s = status->get_status_obj();
+      Check(s);
+    }
+    MPI_Wait(&r, s);
   }
   clear();
 }
 
-//---------------------------------------------------------------------------//
-//! Tests for the completion of a non blocking operation.
-//---------------------------------------------------------------------------//
+#elif defined(C4_SCALAR)
 
-bool C4_ReqRefRep::complete() {
+void C4_ReqRefRep::wait(C4_Status * /*status*/) { clear(); }
+
+#endif
+
+//---------------------------------------------------------------------------//
+/*!
+ * \brief Tests for the completion of a non blocking operation.
+ * \param status Status object.
+ *
+ * This function is non-const because it updates the underlying request data
+ * member.
+ */
+//---------------------------------------------------------------------------//
 #ifdef C4_MPI
+
+bool C4_ReqRefRep::complete(C4_Status *status) {
   int flag = 0;
   bool indicator = false;
-  if (assigned)
-    MPI_Test(&r, &flag, &s);
+  if (assigned) {
+    MPI_Status *s = MPI_STATUS_IGNORE;
+    if (status) {
+      s = status->get_status_obj();
+      Check(s);
+    }
+    MPI_Test(&r, &flag, s);
+  }
   if (flag != 0) {
     clear();
     Check(r == MPI_REQUEST_NULL);
     indicator = true;
   }
   return indicator;
-#endif
-#ifdef C4_SCALAR
-  throw "Send to self machinery has not been implemented in scalar mode.";
-#endif
+  // throw "C4_Req::complete() has not been implemented for this communicator";
 }
+
+#elif defined(C4_SCALAR)
+
+bool C4_ReqRefRep::complete(C4_Status * /*status*/) {
+  return true;
+  //  throw "C4_Req::complete() has not been implemented in scalar mode.";
+}
+
+#endif
 
 } // end namespace rtt_c4
 

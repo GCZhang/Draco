@@ -3,11 +3,8 @@
  * \file   linear/gaussj.hh
  * \author Kent Budge
  * \brief  Solve a system of equations by Gaussian elimination.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef linear_gaussj_hh

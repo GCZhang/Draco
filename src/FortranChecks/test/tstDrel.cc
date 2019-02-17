@@ -1,14 +1,11 @@
 //----------------------------------*-C++-*----------------------------------//
 /*!
- * \file   FortranCheck/test/tstDrel.cc
+ * \file   FortranChecks/test/tstDrel.cc
  * \author Kelly Thompson
  * \date   Tuesday, Jun 12, 2012, 16:03 pm
  * \brief  Test C++ main linking a Fortran library.
- * \note   Copyright (c) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (c) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 //---------------------------------------------------------------------------//

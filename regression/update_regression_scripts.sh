@@ -3,19 +3,36 @@
 ## File  : regression/update_regression_scripts.sh
 ## Date  : Tuesday, May 31, 2016, 14:48 pm
 ## Author: Kelly Thompson
-## Note  : Copyright (C) 2016, Los Alamos National Security, LLC.
+## Note  : Copyright (C) 2016-2019, Triad National Security, LLC.
 ##         All rights are reserved.
 ##---------------------------------------------------------------------------##
 
+# switch to group 'ccsrad' and set umask
+if [[ $(id -gn) != ccsrad ]]; then
+  exec sg ccsrad "$0 $*"
+fi
 umask 0002
-
-target="`uname -n | sed -e s/[.].*//`"
 
 # Locate the directory that this script is located in:
 scriptdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+# Redirect all output to a log file.
+timestamp=`date +%Y%m%d-%H%M`
+target="`uname -n | sed -e s/[.].*//`"
+logdir="$( cd $scriptdir/../../logs && pwd )"
+logfile=$logdir/update_regression_scripts-$target-$timestamp.log
+echo "==> Redirecting output to $logfile"
+exec > $logfile
+exec 2>&1
+
 # import some bash functions
 source $scriptdir/scripts/common.sh
+
+echo -e "Executing $0 $*...\n"
+echo "Group: `id -gn`"
+echo -e "umask: `umask` \n"
+
+#------------------------------------------------------------------------------#
 
 # Per machine setup
 case ${target} in
@@ -25,10 +42,6 @@ case ${target} in
     VENDOR_DIR=/usr/projects/draco/vendors
     # personal copy of ssh-agent.
     export PATH=$HOME/bin:$PATH
-    if test -d /projects/opt/centos7/subversion/1.9.2/bin; then
-      export PATH=/projects/opt/centos7/subversion/1.9.2/bin:$PATH
-    fi
-    SVN=`which svn`
     export http_proxy=http://proxyout.lanl.gov:8080;
     export https_proxy=$http_proxy;
     export HTTP_PROXY=$http_proxy;
@@ -40,49 +53,31 @@ case ${target} in
     REGDIR=/scratch/regress
     VENDOR_DIR=/scratch/vendors
     keychain=keychain-2.8.2
-    if ! [[ $MODULESHOME ]]; then
-       source /usr/share/Modules/init/bash
-    fi
-    run "module load user_contrib subversion"
-    SVN=`which svn`
     ;;
-  ml-*)
+  sn-* | ba-* | tt-* )
     REGDIR=/usr/projects/jayenne/regress
-    keychain=keychain-2.7.1
     VENDOR_DIR=/usr/projects/draco/vendors
-    SVN=/usr/projects/hpcsoft/toss2/common/subversion/1.9.1/bin/svn
     ;;
   *)
-    # module load user_contrib subversion
-    SVN=/scratch/vendors/subversion-1.9.3/bin/svn
     REGDIR=/scratch/regress
     ;;
 esac
 
 # Load some identities used for accessing gitlab.
-MYHOSTNAME="`uname -n`"
-$VENDOR_DIR/$keychain/keychain $HOME/.ssh/cmake_dsa
-if test -f $HOME/.keychain/$MYHOSTNAME-sh; then
+if [[ -f $HOME/.ssh/id_rsa ]]; then
+  MYHOSTNAME="`uname -n`"
+  run "$VENDOR_DIR/$keychain/keychain $HOME/.ssh/id_rsa"
+  if [[ -f $HOME/.keychain/$MYHOSTNAME-sh ]]; then
     run "source $HOME/.keychain/$MYHOSTNAME-sh"
-else
+  else
     echo "Error: could not find $HOME/.keychain/$MYHOSTNAME-sh"
+  fi
 fi
 
 # ---------------------------------------------------------------------------- #
 # Update the regression script directories
 # ---------------------------------------------------------------------------- #
 
-# Draco
-echo " "
-echo "Updating $REGDIR/draco..."
-if ! test -d $REGDIR; then
-  run "mkdir -p ${REGDIR}"
-fi
-if test -d ${REGDIR}/draco; then
-  run "cd ${REGDIR}/draco; git pull"
-else
-  run "cd ${REGDIR}; git clone https://github.com/losalamos/Draco.git draco"
-fi
 # Deal with proxy stuff on darwin
 case ${target} in
   darwin-fe* | cn[0-9]*)
@@ -95,23 +90,80 @@ case ${target} in
   ;;
 esac
 
-# Jayenne
-echo " "
-echo "Updating $REGDIR/jayenne..."
-if test -d ${REGDIR}/jayenne; then
-  run "cd ${REGDIR}/jayenne; git pull"
-else
-  run "cd ${REGDIR}; git clone git@gitlab.lanl.gov:jayenne/jayenne.git"
+# Setup
+if ! [[ -d $REGDIR ]]; then
+  run "mkdir -p ${REGDIR}"
+  run "chmod g+rwX,o-rwX ${REGDIR}"
+  run "chmod g+s ${REGDIR}"
 fi
-# Capsaicin
-echo " "
-echo "Updating $REGDIR/capsaicin..."
-if test -d ${REGDIR}/capsaicin/scripts; then
-run "cd ${REGDIR}/capsaicin/scripts; ${SVN} update"
-else
-  run "mkdir -p ${REGDIR}/capsaicin; cd ${REGDIR}/capsaicin"
-  run "${SVN} co svn+ssh://ccscs7.lanl.gov/ccs/codes/radtran/svn/capsaicin/trunk/scripts"
+
+# List of repositories (also used by push_repositories_xf.sh and
+# pull_repositories_xf.sh).  It defines $github_projects and $gitlab_projects.
+source ${scriptdir}/repository_list.sh
+
+for project in ${github_projects[@]}; do
+  namespace=`echo $project | sed -e 's%/.*%%'`
+  repo=`echo $project | sed -e 's%.*/%%'`
+  case ${repo} in
+    Draco) ldir="draco" ;;
+    *)     ldir=${repo} ;;
+  esac
+  echo -e "\nUpdating $REGDIR/$ldir..."
+  if [[ -d ${REGDIR}/$ldir ]]; then
+    run "cd ${REGDIR}/$ldir; git pull"
+  else
+    echo "No local directory $REGDIR/${ldir}"
+    echo "  ==> To enable regressions for project ${project}, create this directory"
+    echo "      by running 'cd $REGDIR && git clone git@github.com:$project $ldir"
+#    run "cd ${REGDIR}; git clone git@github.com:$project $ldir"
+  fi
+done
+
+# Gitlab repositories...
+for project in ${gitlab_projects[@]}; do
+  namespace=`echo $project | sed -e 's%/.*%%'`
+  repo=`echo $project | sed -e 's%.*/%%'`
+  case ${repo} in
+    Draco) ldir="draco" ;;
+    *)     ldir=${repo} ;;
+  esac
+  echo -e "\nUpdating $REGDIR/$ldir..."
+  if [[ -d ${REGDIR}/$ldir ]]; then
+    run "cd ${REGDIR}/$ldir; git pull"
+  else
+    echo "No local directory $REGDIR/${ldir}"
+    echo "  ==> To enable regressions for project ${project}, create this directory"
+    echo "      by running 'cd $REGDIR && git clone git@github.com:$project $ldir"
+#    run "cd ${REGDIR}; git clone git@gitlab.lanl.gov:${project}.git"
+  fi
+done
+
+
+#------------------------------------------------------------------------------#
+# Cleanup old files and directories
+#------------------------------------------------------------------------------#
+if [[ -d $logdir ]]; then
+  echo -e "\nCleaning up old log files."
+  run "cd $logdir"
+  run "find . -mtime +5 -type f"
+  run "find . -mtime +5 -type f -delete"
 fi
+if [[ -d $REGDIR/cdash ]]; then
+  echo -e "\nCleaning up old builds."
+  run "cd $REGDIR/cdash"
+  run "find . -maxdepth 3 -mtime +5 -name 'Experimental*-pr*' -type d"
+  run "find . -maxdepth 3 -mtime +5 -name 'Experimental*-pr*' -type d -exec rm -rf {} \;"
+fi
+if [[ -d /usr/projects/ccsrad/regress/cdash ]]; then
+  echo -e "\nCleaning up old builds."
+  run "cd /usr/projects/ccsrad/regress/cdash"
+  run "find . -maxdepth 3 -mtime +3 -name 'Experimental*-pr*' -type d"
+  run "find . -maxdepth 3 -mtime +3 -name 'Experimental*-pr*' -type d -exec rm -rf {} \;"
+fi
+
+echo -e "\n--------------------------------------------------------------------------------"
+echo "All done."
+echo "--------------------------------------------------------------------------------"
 
 ##---------------------------------------------------------------------------##
 ## End update_regression_scripts.sh

@@ -4,10 +4,10 @@
  * \author Kent G. Budge
  * \date   18 Feb 2003
  * \brief  Definitions of parsing utility functions.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
+
 #include "utilities.hh"
 #include "units/PhysicalConstants.hh"
 #include "units/PhysicalConstantsSI.hh"
@@ -24,7 +24,7 @@ bool require_unit_expressions = true;
 // https://isocpp.org/wiki/faq/ctors#static-init-order)
 rtt_units::UnitSystem *internal_unit_system = nullptr;
 
-} // namespace anonymous
+} // namespace
 
 namespace rtt_parser {
 using namespace std;
@@ -62,6 +62,15 @@ void set_internal_unit_system(rtt_units::UnitSystem const &units) {
   if (internal_unit_system != nullptr)
     delete internal_unit_system;
   internal_unit_system = new rtt_units::UnitSystem(units);
+}
+
+//---------------------------------------------------------------------------------------//
+// For tracking down memory leaks, it is useful to be able to free any static data.
+
+void free_internal_unit_system() {
+  if (internal_unit_system != nullptr)
+    delete internal_unit_system;
+  internal_unit_system = nullptr;
 }
 
 //---------------------------------------------------------------------------//
@@ -124,26 +133,22 @@ bool unit_expressions_are_required() { return require_unit_expressions; }
  */
 unsigned parse_unsigned_integer(Token_Stream &tokens) {
   Token const token = tokens.shift();
-  if (token.type() == INTEGER) {
-    errno = 0;
-    char *endptr;
-    unsigned long const Result = strtoul(token.text().c_str(), &endptr, 0);
-    if (Result != static_cast<unsigned>(Result) || errno == ERANGE) {
-      tokens.report_semantic_error("integer value overflows");
-    }
-    Check(endptr != NULL);
-    return Result;
-  } else {
-    tokens.report_syntax_error(token, "expected an unsigned integer");
-    return 0;
-  }
+  tokens.check_syntax(token.type() == INTEGER, "expected an unsigned integer");
+  errno = 0;
+  char *endptr;
+  unsigned long const Result = strtoul(token.text().c_str(), &endptr, 0);
+
+  tokens.check_semantics(Result == static_cast<unsigned>(Result) &&
+                             errno != ERANGE,
+                         "integer value overflows");
+
+  Check(endptr != NULL);
+  return Result;
 }
 
 //---------------------------------------------------------------------------//
 /*!
- * \param tokens
- * Token stream from which to parse the quantity.
- *
+ * \param tokens Token stream from which to parse the quantity.
  * \return The parsed quantity.
  */
 unsigned parse_positive_integer(Token_Stream &tokens) {
@@ -159,9 +164,7 @@ unsigned parse_positive_integer(Token_Stream &tokens) {
 
 //---------------------------------------------------------------------------//
 /*!
- * \param tokens
- * Token stream from which to parse the quantity.
- *
+ * \param tokens Token stream from which to parse the quantity.
  * \return The parsed quantity.
  */
 int parse_integer(Token_Stream &tokens) {
@@ -193,16 +196,17 @@ int parse_integer(Token_Stream &tokens) {
 /*!
  * This function does not move the cursor in the token stream.
  *
- * \param tokens
- * Token stream from which to parse the quantity.
+ * \param tokens Token stream from which to parse the quantity.
  * \return \c true if the next token is REAL or INTEGER; \c false otherwise.
  */
 bool at_real(Token_Stream &tokens) {
-  Token token = tokens.lookahead();
+  Token const &token = tokens.lookahead();
   if (token.text() == "-" || token.text() == "+") {
-    token = tokens.lookahead(1);
+    Token const &token2 = tokens.lookahead(1);
+    return (token2.type() == REAL || token2.type() == INTEGER);
+  } else {
+    return (token.type() == REAL || token.type() == INTEGER);
   }
-  return (token.type() == REAL || token.type() == INTEGER);
 }
 
 //---------------------------------------------------------------------------//
@@ -211,21 +215,20 @@ bool at_real(Token_Stream &tokens) {
  * with the integers being a subset of reals, and with about five decades of
  * common practice in the computer language community.
  *
- * \param tokens
- * Token stream from which to parse the quantity.
+ * \param tokens Token stream from which to parse the quantity.
  * \return The parsed quantity.
  */
 double parse_real(Token_Stream &tokens) {
   Token token = tokens.shift();
-  string text;
+  double sign = 1.0;
   if (token.text() == "+") {
     token = tokens.shift();
   } else if (token.text() == "-") {
-    text = '-';
+    sign = -1.0;
     token = tokens.shift();
   }
   if (token.type() == REAL || token.type() == INTEGER) {
-    text += token.text();
+    string const &text = token.text();
     errno = 0;
     char *endptr;
     const double Result = strtod(text.c_str(), &endptr);
@@ -237,7 +240,7 @@ double parse_real(Token_Stream &tokens) {
       }
     }
     Check(endptr != NULL && *endptr == '\0');
-    return Result;
+    return sign * Result;
   } else {
     tokens.report_syntax_error(token, "expected a real number");
     return 0.0;
@@ -246,9 +249,7 @@ double parse_real(Token_Stream &tokens) {
 
 //---------------------------------------------------------------------------//
 /*!
- * \param tokens
- * Token stream from which to parse the quantity.
- *
+ * \param tokens Token stream from which to parse the quantity.
  * \return The parsed quantity.
  */
 double parse_positive_real(Token_Stream &tokens) {
@@ -264,9 +265,7 @@ double parse_positive_real(Token_Stream &tokens) {
 
 //---------------------------------------------------------------------------//
 /*!
- * \param tokens
- * Token stream from which to parse the quantity.
- *
+ * \param tokens Token stream from which to parse the quantity.
  * \return The parsed quantity.
  */
 double parse_nonnegative_real(Token_Stream &tokens) {
@@ -282,10 +281,8 @@ double parse_nonnegative_real(Token_Stream &tokens) {
 
 //---------------------------------------------------------------------------//
 /*!
- * \param tokens
- * Token stream from which to parse the quantity.
- * \param x
- * On return, contains the parsed vector components.
+ * \param tokens Token stream from which to parse the quantity.
+ * \param x On return, contains the parsed vector components.
  * \pre \c x!=NULL
  */
 void parse_vector(Token_Stream &tokens, double x[]) {
@@ -306,17 +303,15 @@ void parse_vector(Token_Stream &tokens, double x[]) {
     x[2] = 0.0;
   }
 }
-//---------------------------------------------------------------------------//
 
 //---------------------------------------------------------------------------//
 /*!
- * \param tokens
- * Token stream from which to parse the quantity.
- * \param x
- * On return, contains the parsed vector components.
+ * \param tokens Token stream from which to parse the quantity.
+ * \param x On return, contains the parsed vector components.
+ * \param size size of parameter x.
+ *
  * \pre \c x!=NULL
  */
-
 void parse_unsigned_vector(Token_Stream &tokens, unsigned x[], unsigned size) {
   Require(x != NULL);
 
@@ -338,22 +333,20 @@ void parse_unsigned_vector(Token_Stream &tokens, unsigned x[], unsigned size) {
 /*!
  * \brief Are we at a unit term?
  *
- * We are at a unit term if the next token on the Token_Stream is a valid
- * unit name.
+ * We are at a unit term if the next token on the Token_Stream is a valid unit
+ * name.
  *
- * \param tokens
- * Token_Stream from which to parse.
- * \param pos
- * Position in Token_Stream at which to parse.  This lookahead capability is
- * needed by parse_unit to see if a hyphen '-' is part of a unit expression.
+ * \param tokens Token_Stream from which to parse.
+ * \param position Position in Token_Stream at which to parse.  This lookahead
+ * capability is needed by parse_unit to see if a hyphen '-' is part of a unit
+ * expression.
  *
  * \return \c true if we are at the start of a unit term; \c false otherwise
  */
-
 bool at_unit_term(Token_Stream &tokens, unsigned position) {
-  Token const token = tokens.lookahead(position);
+  Token const &token = tokens.lookahead(position);
   if (token.type() == KEYWORD) {
-    string const u = token.text();
+    string const &u = token.text();
     switch (u[0]) {
     case 'A':
       // return (u[1]=='\0');
@@ -447,184 +440,209 @@ Unit parse_unit(Token_Stream &tokens);
 /*!
  * \brief Parse a unit name.
  *
- * A unit name can either be a literal unit name, like "kg", or a
- * parenthesized unit expression.
+ * A unit name can either be a literal unit name, like "kg", or a parenthesized
+ * unit expression.
  *
- * \param tokens
- * Token_Stream from which to parse.
+ * \param tokens Token_Stream from which to parse.
  * \return The unit.
  */
-
 static Unit parse_unit_name(Token_Stream &tokens) {
+  // Return value
+  Unit retval;
   Token token = tokens.shift();
   if (token.type() == KEYWORD) {
-    string const u = token.text();
+    string const &u = token.text();
     switch (u[0]) {
     case 'A':
       if (u.size() == 1)
-        return A;
+        retval = A;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'C':
       if (u.size() == 1)
-        return C;
+        retval = C;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'F':
       if (u.size() == 1)
-        return F;
+        retval = F;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'H':
       if (u.size() == 1)
-        return H;
+        retval = H;
       else if (u.size() == 2)
-        return Hz;
+        retval = Hz;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'J':
       if (u.size() == 1)
-        return J;
+        retval = J;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'K':
       if (u.size() == 1)
-        return K;
+        retval = K;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'N':
       if (u.size() == 1)
-        return N;
+        retval = N;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'P':
       if (u.size() == 2)
-        return Pa;
+        retval = Pa;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'S':
       if (u.size() == 1)
-        return S;
+        retval = S;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'T':
       if (u.size() == 1)
-        return T;
+        retval = T;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'V':
       if (u.size() == 1)
-        return V;
+        retval = V;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'W':
       if (u.size() == 1)
-        return W;
+        retval = W;
       else if (token.text() == "Wb")
-        return Wb;
+        retval = Wb;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'c':
       if (token.text() == "cd")
-        return cd;
+        retval = cd;
       else if (token.text() == "cm")
-        return cm;
+        retval = cm;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'd':
       if (token.text() == "dyne")
-        return dyne;
+        retval = dyne;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'e':
       if (token.text() == "erg")
-        return erg;
+        retval = erg;
       else if (token.text() == "eV")
-        return eV;
+        retval = eV;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'f':
       if (token.text() == "foot")
-        return foot;
+        retval = foot;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'g':
       if (u.size() == 1)
-        return g;
+        retval = g;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'i':
       if (token.text() == "inch")
-        return inch;
+        retval = inch;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'k':
       if (token.text() == "kg")
-        return kg;
+        retval = kg;
       else if (token.text() == "keV")
-        return keV;
+        retval = keV;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'l':
       if (token.text() == "lm")
-        return lm;
+        retval = lm;
       else if (token.text() == "lx")
-        return lx;
+        retval = lx;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'm':
       if (u.size() == 1)
-        return m;
+        retval = m;
       else if (token.text() == "mol")
-        return mol;
+        retval = mol;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'o':
       if (token.text() == "ohm")
-        return ohm;
+        retval = ohm;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'p':
       if (token.text() == "pound")
-        return pound;
+        retval = pound;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 'r':
       if (token.text() == "rad")
-        return rad;
+        retval = rad;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     case 's':
       if (u.size() == 1)
-        return s;
+        retval = s;
       else if (token.text() == "sr")
-        return sr;
+        retval = sr;
       else
         tokens.report_syntax_error("expected a unit");
+      break;
 
     default:
       tokens.report_syntax_error("expected a unit");
@@ -634,12 +652,13 @@ static Unit parse_unit_name(Token_Stream &tokens) {
     token = tokens.shift();
     if (token.type() != OTHER || token.text() != ")")
       tokens.report_syntax_error("missing ')'");
-    return Result;
+    retval = Result;
   } else {
     tokens.report_syntax_error("expected a unit expression");
   }
   // never reached but causes warnings
-  return dimensionless;
+  // return dimensionless;
+  return retval;
 }
 
 //---------------------------------------------------------------------------//
@@ -648,14 +667,12 @@ static Unit parse_unit_name(Token_Stream &tokens) {
  *
  * A unit term is a unit name optionally raised to some power.
  *
- * \param tokens
- * Token_Stream from which to parse.
+ * \param tokens Token_Stream from which to parse.
  * \return The unit term.
  */
-
 static Unit parse_unit_term(Token_Stream &tokens) {
   Unit const Result = parse_unit_name(tokens);
-  Token const token = tokens.lookahead();
+  Token const &token = tokens.lookahead();
   if (token.text() == "^") {
     tokens.shift();
     double const exponent = parse_real(tokens);
@@ -673,11 +690,9 @@ static Unit parse_unit_term(Token_Stream &tokens) {
  * expression is permitted and returns rtt_parser::dimensionless, the
  * identity Unit representing the pure number 1.
  *
- * \param tokens
- * Token_Stream from which to parse.
+ * \param tokens Token_Stream from which to parse.
  * \return The unit expression.
  */
-
 Unit parse_unit(Token_Stream &tokens) {
   if (!at_unit_term(tokens))
     return dimensionless;
@@ -685,7 +700,7 @@ Unit parse_unit(Token_Stream &tokens) {
   Unit Result = parse_unit_term(tokens);
 
   for (;;) {
-    Token const token = tokens.lookahead();
+    Token const &token = tokens.lookahead();
     if (token.type() == OTHER) {
       if (token.text() == "-" && at_unit_term(tokens, 1)) {
         tokens.shift();
@@ -710,17 +725,14 @@ Unit parse_unit(Token_Stream &tokens) {
  * will be converted to the desired unit system, as indicated by the \c .conv
  * member of the \c target_unit argument.
  *
- * \param tokens
- * Token stream from which to parse the quantity.
- * \param target_unit
- * Expected units for the quantity parsed, including conversion factor.
- * \param name
- * Name of the units expected for the quantity parsed, such as "length" or
- * "ergs/cm/sec/Hz". Used to generate diagnostic messages.
+ * \param tokens Token stream from which to parse the quantity.
+ * \param target_unit Expected units for the quantity parsed, including
+ * conversion factor.
+ * \param name Name of the units expected for the quantity parsed, such as
+ * "length" or "ergs/cm/sec/Hz". Used to generate diagnostic messages.
  *
  * \return The parsed value, converted to the desired unit system.
  */
-
 double parse_quantity(Token_Stream &tokens, Unit const &target_unit,
                       char const *const name) {
   double const value = parse_real(tokens);
@@ -742,43 +754,40 @@ double parse_quantity(Token_Stream &tokens, Unit const &target_unit,
 /*!
  * \brief Parse a temperature specification
  *
- * It is very common for transport researchers to specify a temperature in
- * units of energy, using Boltzmann's constant as the conversion factor.
- * This function is useful for parsers that accomodate this convention.
+ * It is very common for transport researchers to specify a temperature in units
+ * of energy, using Boltzmann's constant as the conversion factor.  This
+ * function is useful for parsers that accomodate this convention.
  *
- * \param tokens
- * Token stream from which to parse the specification.
- *
+ * \param tokens Token stream from which to parse the specification.
  * \return The parsed temperature.
  *
  * \post \c Result>=0.0
  */
-
 double parse_temperature(Token_Stream &tokens) {
-  double T = parse_real(tokens);
+  double Temp = parse_real(tokens);
 
-  if (T < 0.0) {
+  if (Temp < 0.0) {
     tokens.report_semantic_error("temperature must be nonnegative");
-    T = 0.0;
+    Temp = 0.0;
   }
 
   if (!unit_expressions_are_required() && !at_unit_term(tokens)) {
-    return T;
+    return Temp;
   } else {
     Unit const u = parse_unit(tokens);
-    T *= u.conv * conversion_factor(u, get_internal_unit_system());
+    Temp *= u.conv * conversion_factor(u, get_internal_unit_system());
     if (is_compatible(u, K)) {
       // no action needed
     } else if (is_compatible(u, J)) {
-      T *= get_internal_unit_system().T() /
-           (rtt_units::boltzmannSI *
-            conversion_factor(u, get_internal_unit_system()));
+      Temp *= get_internal_unit_system().T() /
+              (rtt_units::boltzmannSI *
+               conversion_factor(u, get_internal_unit_system()));
     } else {
       tokens.report_semantic_error("expected quantity with units of "
                                    "temperature");
       return 0.0;
     }
-    return T;
+    return Temp;
   }
 }
 
@@ -786,15 +795,14 @@ double parse_temperature(Token_Stream &tokens) {
 /*!
  * \brief Parse a temperature specification
  *
- * It is very common for transport researchers to specify a temperature in
- * units of energy, using Boltzmann's constant as the conversion factor.
- * This function is useful for parsers that accomodate this convention.
+ * It is very common for transport researchers to specify a temperature in units
+ * of energy, using Boltzmann's constant as the conversion factor.  This
+ * function is useful for parsers that accomodate this convention.
  *
  * This version of the function parses a temperature expression containing
  * user-defined variables.
  *
- * \param tokens
- * Token stream from which to parse the specification.
+ * \param tokens Token stream from which to parse the specification.
  *
  * \param number_of_variables Number of user-defined variables potentially
  * present in the parsed expression.
@@ -805,44 +813,41 @@ double parse_temperature(Token_Stream &tokens) {
  *
  * \post \c Result>=0.0
  */
-
-SP<Expression>
+std::shared_ptr<Expression>
 parse_temperature(Token_Stream &tokens, unsigned const number_of_variables,
                   std::map<string, pair<unsigned, Unit>> const &variable_map) {
-  SP<Expression> T =
+  std::shared_ptr<Expression> Temp =
       Expression::parse(number_of_variables, variable_map, tokens);
 
   if (!unit_expressions_are_required() && !at_unit_term(tokens)) {
-    return T;
+    return Temp;
   } else {
     rtt_units::UnitSystem const &unit_system = get_internal_unit_system();
-    Unit const u = parse_unit(tokens) * T->units();
+    Unit const u = parse_unit(tokens) * Temp->units();
     double const conv = conversion_factor(u, unit_system);
     if (is_compatible(u, K)) {
       // no action needed
-      T->set_units(conv * u);
+      Temp->set_units(conv * u);
     } else if (is_compatible(u, J)) {
       double const boltzmann =
           rtt_units::boltzmannSI * unit_system.e() / unit_system.T();
 
-      T->set_units(conv * u / boltzmann);
+      Temp->set_units(conv * u / boltzmann);
     } else {
       tokens.report_syntax_error("expected quantity with units of "
                                  "temperature");
     }
-    return T;
+    return Temp;
   }
 }
 
 //---------------------------------------------------------------------------//
 /*!
- * Parses a STRING token and strips the delimiting quotation marks.
+ * \brief Parses a STRING token and strips the delimiting quotation marks.
  *
- * \param tokens
- * Token_Stream from which to parse.
+ * \param tokens Token_Stream from which to parse.
  * \return The stripped string.
  */
-
 std::string parse_manifest_string(Token_Stream &tokens) {
   Token const token = tokens.shift();
   if (token.type() != STRING) {
@@ -859,22 +864,20 @@ std::string parse_manifest_string(Token_Stream &tokens) {
 /*!
  * \brief Parse a geometry specification.
  *
- * \param tokens
- * Token stream from which to parse the geometry.
+ * \param tokens Token stream from which to parse the geometry.
  * \param parsed_geometry On entry, if the value is not \c END_GEOMETRY, a
- * diagnostic is generated to the token stream. On return, contains the
- * geometry that was parsed.
+ *           diagnostic is generated to the token stream. On return, contains
+ *           the geometry that was parsed.
  *
  * \post <code> parsed_geometry == rtt_mesh_element::AXISYMMETRIC ||
  *         parsed_geometry == rtt_mesh_element::CARTESIAN    ||
  *         parsed_geometry == rtt_mesh_element::SPHERICAL </code>
  */
-
 void parse_geometry(Token_Stream &tokens,
                     rtt_mesh_element::Geometry &parsed_geometry) {
-  if (parsed_geometry != rtt_mesh_element::END_GEOMETRY) {
-    tokens.report_semantic_error("geometry specified twice");
-  }
+  tokens.check_semantics(parsed_geometry == rtt_mesh_element::END_GEOMETRY,
+                         "geometry specified twice");
+
   Token const token = tokens.shift();
   if (token.text() == "axisymmetric" || token.text() == "cylindrical") {
     parsed_geometry = rtt_mesh_element::AXISYMMETRIC;
@@ -895,12 +898,9 @@ void parse_geometry(Token_Stream &tokens,
 
 //---------------------------------------------------------------------------//
 /*!
- * \param tokens
- * Token stream from which to parse the quantity.
- *
+ * \param tokens Token stream from which to parse the quantity.
  * \return The parsed quantity.
  */
-
 bool parse_bool(Token_Stream &tokens) {
   Token const token = tokens.shift();
   if (token.text() == "true") {
@@ -919,27 +919,21 @@ bool parse_bool(Token_Stream &tokens) {
  * will be converted to the desired unit system, as indicated by the \c .conv
  * member of the \c target_unit argument.
  *
- * \param tokens
- * Token stream from which to parse the quantity.
- * \param target_unit
- * Expected units for the quantity parsed, including conversion factor.
- * \param name
- * Name of the units expected for the quantity parsed, such as "length" or
- * "ergs/cm/sec/Hz". Used to generate diagnostic messages.
- *
+ * \param tokens Token stream from which to parse the quantity.
+ * \param target_unit Expected units for the quantity parsed, including
+ * conversion factor.
+ * \param name Name of the units expected for the quantity parsed, such as
+ * "length" or "ergs/cm/sec/Hz". Used to generate diagnostic messages.
  * \param number_of_variables Number of user-defined variables potentially
  * present in the parsed expression.
- *
  * \param variable_map Map of variable names to variables indices.
- *
  * \return The parsed value, converted to the desired unit system.
  */
-
-SP<Expression>
+std::shared_ptr<Expression>
 parse_quantity(Token_Stream &tokens, Unit const &target_unit,
                char const *const name, unsigned const number_of_variables,
                std::map<string, pair<unsigned, Unit>> const &variable_map) {
-  SP<Expression> value =
+  std::shared_ptr<Expression> value =
       Expression::parse(number_of_variables, variable_map, tokens);
 
   if (!unit_expressions_are_required() && !at_unit_term(tokens)) {
@@ -957,7 +951,7 @@ parse_quantity(Token_Stream &tokens, Unit const &target_unit,
   }
 }
 
-} // rtt_parser
+} // namespace rtt_parser
 
 //----------------------------------------------------------------------------//
 // end of utilities.cc

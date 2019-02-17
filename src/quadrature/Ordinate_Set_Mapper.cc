@@ -3,26 +3,25 @@
  * \file   quadrature/Ordinate_Set_Mapper.cc
  * \author Allan Wollaber
  * \date   Mon Mar  7 10:42:56 EST 2016
- * \brief  Implementation file for the class rtt_quadrature::Ordinate_Set_Mapper.
- * \note   Copyright (C)  2016 Los Alamos National Security, LLC.
- *         All rights reserved. 
- */
-//---------------------------------------------------------------------------//
-// $Id: Ordinate_Set_Mapper.cc 6607 2012-06-14 22:31:45Z kellyt $
+ * \brief  Implementation file for the class
+ *         rtt_quadrature::Ordinate_Set_Mapper.
+ * \note   Copyright (C)  2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
+#include "Ordinate_Set_Mapper.hh"
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <numeric>
-
-#include "Ordinate_Set_Mapper.hh"
 
 namespace {
 using namespace std;
 using namespace rtt_quadrature;
 
 // convenience functions to check ordinates
+
+#if DBC & 1
 
 //---------------------------------------------------------------------------//
 bool check_4(Ordinate const &ordinate) {
@@ -41,6 +40,8 @@ bool check_2(Ordinate const &ordinate) {
     return false;
   return true;
 }
+
+#endif
 
 //---------------------------------------------------------------------------//
 typedef std::pair<double, size_t> dsp;
@@ -63,8 +64,8 @@ bool Ordinate_Set_Mapper::check_class_invariants() const {
  * \param[in] interp_in Selected interpolation scheme to use for remapping
  * \param[out] weights vector of output weights produced by remapping
  *
- *  The output weights preserve the incoming weight assuming that the 
- *  incoming ordinate's weight is associated via a delta function in angle.
+ *  The output weights preserve the incoming weight assuming that the incoming
+ *  ordinate's weight is associated via a delta function in angle.
  */
 void Ordinate_Set_Mapper::map_angle_into_ordinates(
     const Ordinate &ord_in, const Interpolation_Type &interp_in,
@@ -120,7 +121,7 @@ void Ordinate_Set_Mapper::map_angle_into_ordinates(
     Require(dps.size() >= 3);
 
     // Vector of all ordinates in the ordinate set
-    const vector<Ordinate> &ords(os_.ordinates());
+    const vector<Ordinate> &ord(os_.ordinates());
 
     // Associate a container of indices with the dot products
     std::vector<std::pair<double, size_t>> dpsi(dps.size());
@@ -150,9 +151,8 @@ void Ordinate_Set_Mapper::map_angle_into_ordinates(
     w2 = 1.0 - w2;
     w3 = 1.0 - w3;
 
-    // This block selects a single ordinate in the ordinate
-    // set if one of the dot products is very near to 1.0
-    // (to within ord_tol)
+    // This block selects a single ordinate in the ordinate set if one of the
+    // dot products is very near to 1.0 (to within ord_tol)
     if (w1 > ord_tol && w2 > ord_tol && w3 > ord_tol) {
       w1 = 1.0 / w1;
       w2 = 1.0 / w2;
@@ -175,9 +175,9 @@ void Ordinate_Set_Mapper::map_angle_into_ordinates(
     Check(wsum > 0.0);
 
     // Normalize the 3 weights
-    w1 = w1 * ord_in.wt() / (ords[i1].wt() * wsum);
-    w2 = w2 * ord_in.wt() / (ords[i2].wt() * wsum);
-    w3 = w3 * ord_in.wt() / (ords[i3].wt() * wsum);
+    w1 = w1 * ord_in.wt() / (ord[i1].wt() * wsum);
+    w2 = w2 * ord_in.wt() / (ord[i2].wt() * wsum);
+    w3 = w3 * ord_in.wt() / (ord[i3].wt() * wsum);
 
     weights[i1] = w1;
     weights[i2] = w2;
@@ -201,7 +201,6 @@ void Ordinate_Set_Mapper::map_angle_into_ordinates(
  * \param[in] weights vector in the ordinates
  *
  * \return double value for the zeroth moment
- *
  */
 double Ordinate_Set_Mapper::zeroth_moment(const vector<double> &weights) const {
   Require(weights.size() == os_.ordinates().size());
@@ -220,5 +219,5 @@ double Ordinate_Set_Mapper::zeroth_moment(const vector<double> &weights) const {
 } // end namespace rtt_quadrature
 
 //---------------------------------------------------------------------------//
-//              end of quadrature/Ordinate_Set_Mapper.cc
+// end of quadrature/Ordinate_Set_Mapper.cc
 //---------------------------------------------------------------------------//

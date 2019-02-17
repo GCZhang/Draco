@@ -4,11 +4,8 @@
  * \author Kelly Thompson, Katherine Wang
  * \date   Tuesday, Oct 27, 2016, 15:17 pm
  * \brief  Command line argument handling similar to getopt.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "XGetopt.hh"
@@ -47,14 +44,14 @@ std::vector<char> XGetopt::decompose_shortopts(std::string const &shortopts) {
 /*!
  * \brief Convert a map<char,string> into easy-to-parse vectors and strip
  *        colons.
- * \param[in] longopts A map<char,string> data structure that contains all
+ * \param[in] longopts_ A map<char,string> data structure that contains all
  *            supported options that are to be registered. Each entry pair
  *            represents one option that is registered, a short option that is
  *            used with a single dash (-h) and a long option that is used with a
  *            double dash (--help). Strings followed by a colon represent
  *            options that require additional information to be read from the
  *            command line.
-
+ *
  * \return A vector of chars that represent all support options.
  *
  * If the string value ends in a colon, ':', strip it from the map.  This data

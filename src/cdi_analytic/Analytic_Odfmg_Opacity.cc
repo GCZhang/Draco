@@ -4,10 +4,8 @@
  * \author Thomas M. Evans
  * \date   Tue Nov 13 11:19:59 2001
  * \brief  Analytic_Odfmg_Opacity class member definitions.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "Analytic_Odfmg_Opacity.hh"
@@ -32,13 +30,12 @@ namespace rtt_cdi_analytic {
  * be equal to the number of groups.
  *
  * \param groups vector containing the group boundaries in keV from lowest to
- * highest
- *
- * \param models vector containing SPs to Analytic_Model derived types for
- * each group, the size should be groups.size() - 1
- *
+ *           highest
+ * \param bands vector containing the band boundaries in keV from lowest to
+ *           highest
  * \param reaction_in rtt_cdi::Reaction type (enumeration)
- *
+ * \param model_in vector containing shared_ptrs to Analytic_Model derived types
+ *           for each group, the size should be groups.size() - 1
  */
 Analytic_Odfmg_Opacity::Analytic_Odfmg_Opacity(const sf_double &groups,
                                                const sf_double &bands,
@@ -53,7 +50,7 @@ Analytic_Odfmg_Opacity::Analytic_Odfmg_Opacity(const sf_double &groups,
 //---------------------------------------------------------------------------//
 /*!
  * \brief Unpacking constructor.
- * 
+ *
  * This constructor rebuilds and Analytic_Odfmg_Opacity from a
  * vector<char> that was created by a call to pack().  It can only rebuild
  * Analytic_Model types that have been registered in the
@@ -152,12 +149,16 @@ Analytic_Odfmg_Opacity::sf_char Analytic_Odfmg_Opacity::pack() const {
 //---------------------------------------------------------------------------//
 unsigned Analytic_Odfmg_Opacity::packed_size() const {
   // This must match the size calculated in the previous function
-  return 4 * sizeof(int) + groupBoundaries.size() * sizeof(double) +
-         bandBoundaries.size() * sizeof(double);
+  Check(4 * sizeof(int) + groupBoundaries.size() * sizeof(double) +
+            bandBoundaries.size() * sizeof(double) <
+        UINT_MAX);
+  return static_cast<unsigned>(4 * sizeof(int) +
+                               groupBoundaries.size() * sizeof(double) +
+                               bandBoundaries.size() * sizeof(double));
 }
 
 } // end namespace rtt_cdi_analytic
 
 //---------------------------------------------------------------------------//
-//                              end of Analytic_Odfmg_Opacity.cc
+// end of Analytic_Odfmg_Opacity.cc
 //---------------------------------------------------------------------------//

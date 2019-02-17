@@ -1,14 +1,11 @@
 //----------------------------------*-C++-*----------------------------------//
 /*!
- * \file   sf/factorial.i.hh
+ * \file   special_functions/factorial.i.hh
  * \author Kelly Thompson
  * \date   Mon Nov 8 11:17:12 2004
  * \brief  Provide implementation of templatized factorial function.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef sf_factorial_i_hh
@@ -20,9 +17,9 @@
 namespace rtt_sf {
 
 //---------------------------------------------------------------------------//
-/*! 
+/*!
  * \brief factorial
- * 
+ *
  * This is a recursive function that computes k!
  *
  * \param k A number whose factorial is desired.
@@ -49,9 +46,9 @@ template <typename T> T factorial(T const k) {
 }
 
 //---------------------------------------------------------------------------//
-/*! 
+/*!
  * \brief Fraction of factorials, \f$ (k!)/(l!) \f$
- * 
+ *
  * \param k The numerator, \f$ k! \f$
  * \param l The denominator, \f$ l! \f$
  * \return \f$ (k!)/(l!) \f$

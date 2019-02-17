@@ -3,12 +3,10 @@
 # author Kelly Thompson <kgt@lanl.gov>
 # date   2010 Sep 24
 # brief  Generate build project files for ds++.
-# note   Copyright (C) 2016, Los Alamos National Security, LLC.
+# note   Copyright (C) 2016-2019, Triad National Security, LLC.
 #        All rights reserved.
 #------------------------------------------------------------------------------#
-# $Id$
-#------------------------------------------------------------------------------#
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.9.0)
 project( dsxx CXX )
 
 # ---------------------------------------------------------------------------- #
@@ -20,10 +18,9 @@ project( dsxx CXX )
 # Choose platforms for fpe_trap
 if( ${CMAKE_SYSTEM} MATCHES "OSF" )
    set( FPETRAP_OSF_ALPHA 1 )
-elseif( ${CMAKE_SYSTEM} MATCHES "Linux" OR ${CMAKE_SYSTEM} MATCHES "Catamount" )
-   # If the OS is Linux, fpe_trap should work as long as
-   # feenableexscept is available.  That is, it should work for both
-   # GNU and Intel compiler suites.
+elseif( ${CMAKE_SYSTEM} MATCHES "Linux" )
+   # If the OS is Linux, fpe_trap should work as long as feenableexcept is
+   # available.  That is, it should work for both GNU and Intel compiler suites.
    set( FPETRAP_LINUX_X86 1 )
 
    # Turn fpe_trap off for PGI compilers.
@@ -36,6 +33,7 @@ elseif( ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" )
    else()
       set( FPETRAP_DARWIN_INTEL 1 )
    endif()
+
 elseif( ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
    set( FPETRAP_WINDOWS_X86 1 )
 endif()
@@ -56,12 +54,17 @@ set_property( CACHE DRACO_DIAGNOSTICS PROPERTY STRINGS 0 1 2 3 4 5 6 7 )
 string( REPLACE "." "" CMAKE_CXX_COMPILER_VERSION_ENUM
   ${CMAKE_CXX_COMPILER_VERSION} )
 
+# Is this a KNL
+if( CRAY_PE AND "$ENV{CRAY_CPU_TARGET}" STREQUAL "mic-knl" )
+  set( draco_isKNL ON )
+endif()
+
 # Create ds++/config.h
 configure_file( config.h.in ${PROJECT_BINARY_DIR}/ds++/config.h )
 
 # Generate the dll_declspec.h file that defines DLL_PUBLIC_<pkg> CPP macros.
 include(generate_dll_declspec)
-generate_dll_declspec( "ds++" "c4;cdi;cdi_test;cdi_analytic;cdi_eospac;cdi_ipcress;cdi_ipcress_test;device;diagnostics;dsxx;fit;FC_Derived_Type;linear;meshReaders;mesh_element;min;norms;ode;parser;quadrature;quadrature_test;rng;roots;RTT_Format_Reader;special_functions;timestep;timestep_test;units;viz" )
+generate_dll_declspec( "ds++" "c4;cdi;cdi_test;cdi_analytic;cdi_eospac;cdi_ipcress;cdi_ipcress_test;device;diagnostics;dsxx;fit;FC_Derived_Type;linear;mesh;meshReaders;mesh_element;min;norms;ode;parser;quadrature;quadrature_test;rng;roots;RTT_Format_Reader;special_functions;timestep;timestep_test;units;viz" )
 
 # ---------------------------------------------------------------------------- #
 # Source files
@@ -76,18 +79,14 @@ list( APPEND headers
    ${PROJECT_BINARY_DIR}/ds++/dll_declspec.h )
 list( REMOVE_ITEM headers ${template_implementations} )
 
-# Make the header files available in the IDE.
-if( MSVC_IDE OR ${CMAKE_GENERATOR} MATCHES Xcode )
-   list( APPEND sources ${headers} ${template_implementations} )
+if( ${CMAKE_GENERATOR} MATCHES "Xcode" )
+  # Xcode does not support per file, per configuration compile definitions, so
+  # we add this compile definition for all files
+  add_compile_definitions( BUILD_TYPE="$<CONFIG>" )
+else()
+  set_source_files_properties( Release.cc PROPERTIES
+    COMPILE_DEFINITIONS BUILD_TYPE="$<CONFIG>" )
 endif()
-
-# ---------------------------------------------------------------------------- #
-# Directories to search for include directives
-# ---------------------------------------------------------------------------- #
-
-include_directories(
-   ${PROJECT_SOURCE_DIR}   # sources
-   ${PROJECT_BINARY_DIR} ) # config.h
 
 # ---------------------------------------------------------------------------- #
 # Build package library
@@ -97,19 +96,24 @@ add_component_library(
    TARGET       Lib_dsxx
    LIBRARY_NAME ds++
    SOURCES      "${sources}"
+   HEADERS      "${headers}"
    )
 target_link_libraries( Lib_dsxx ${Lib_win_winsock} )
-
-# This should turn on C++11 options for Lib_dsxx, but CMake doesn't
-# know how to do this for Intel as of cmake/3.2.
-# target_compile_features( Lib_dsxx PUBLIC cxx_auto_type )
+target_include_directories( Lib_dsxx
+  # source directory or install location
+  PUBLIC
+    $<BUILD_INTERFACE:${Draco_SOURCE_DIR}/src>
+    $<INSTALL_INTERFACE:include>
+  # generated include directive files (config.h)
+  PUBLIC $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}> )
 
 # ---------------------------------------------------------------------------- #
 # Installation instructions
 # ---------------------------------------------------------------------------- #
 
 install( TARGETS Lib_dsxx EXPORT draco-targets DESTINATION ${DBSCFGDIR}lib )
-install( FILES ${headers} ${template_implementations} DESTINATION ${DBSCFGDIR}include/ds++ )
+install( FILES ${headers} ${template_implementations} DESTINATION
+  ${DBSCFGDIR}include/ds++ )
 
 # ---------------------------------------------------------------------------- #
 # Unit tests

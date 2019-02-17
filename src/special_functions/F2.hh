@@ -1,13 +1,10 @@
 //----------------------------------*-C++-*----------------------------------//
 /*!
- * \file   sf/F2.hh
+ * \file   special_functions/F2.hh
  * \author Kent Budge
  * \brief  Fermi-Dirac integral of second order.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef sf_F2_hh

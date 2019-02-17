@@ -4,11 +4,11 @@
  * \author Kent Budge
  * \date   Mon Aug  9 13:06:56 2004
  * \brief  Test the tqli eigenvector solver.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
  *         All rights reserved.
  */
 //---------------------------------------------------------------------------//
-// $Id$
+
 //---------------------------------------------------------------------------//
 
 #include "ds++/Release.hh"

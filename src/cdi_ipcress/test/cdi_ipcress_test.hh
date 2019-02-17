@@ -4,11 +4,8 @@
  * \author Thomas M. Evans
  * \date   Fri Oct 12 15:36:36 2001
  * \brief  cdi_ipcress test function headers.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef __cdi_ipcress_test_hh__
@@ -16,10 +13,7 @@
 
 #include "ds++/ScalarUnitTest.hh"
 #include "ds++/Soft_Equivalence.hh"
-#include <iostream>
 #include <sstream>
-#include <string>
-#include <vector>
 
 namespace rtt_cdi_ipcress_test {
 

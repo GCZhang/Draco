@@ -4,11 +4,11 @@
  * \author Kelly Thompson
  * \date   Mon Jan 8 15:17:16 2001
  * \brief  DummyMultigroupOpacity templated class implementation file.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
  *         All rights reserved.
  */
 //---------------------------------------------------------------------------//
-// $Id$
+
 //---------------------------------------------------------------------------//
 
 #include "DummyMultigroupOpacity.hh"

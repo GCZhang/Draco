@@ -4,55 +4,41 @@
  * \author Kent Budge
  * \date   Mon Aug  9 13:17:31 2004
  * \brief  Calculate the singular value decomposition of a matrix.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef linear_svdcmp_i_hh
 #define linear_svdcmp_i_hh
 
-#include <sstream>
-#include <vector>
-
 #include "svdcmp.hh"
 #include "ds++/DracoMath.hh"
+#include <sstream>
+#include <vector>
 
 namespace rtt_linear {
 //---------------------------------------------------------------------------//
 /*!
  * \brief Compute the singular value decomposition of a matrix.
  *
- * Compute the decomposition of a matrix \f$A=UWV^T\f$ where \f$U\f$ has the
- * same shape as the original matrix; \f$W\f$ is diagonal with rank equal to
- * the column order of \f$A\f$; and \f$V\f$ is a square full matrix of rank
- * equal to the column order of \f$A\f$.
+ * Compute the decomposition of a matrix \f$ A=UWV^T \f$ where \f$ U \f$ has the
+ * same shape as the original matrix; \f$ W \f$ is diagonal with rank equal to
+ * the column order of \f$ A \f$; and \f$ V \f$ is a square full matrix of rank
+ * equal to the column order of \f$ A \f$.
  *
- * The singular value decomposition is tremendously useful for manipulation
- * both nonsquare matrices and nearly singular square matrices.  The
- * following routine is very robust.
+ * The singular value decomposition is tremendously useful for manipulation both
+ * nonsquare matrices and nearly singular square matrices.  The following
+ * routine is very robust.
  *
  * \arg \a RandomContainer A random access container type
- *
- * \param a
- * Matrix to be decomposed.  On exit, contains \f$U\f$.
- *
+ * \param a Matrix to be decomposed.  On exit, contains \f$ U \f$.
  * \param m Number of rows in a
- *
  * \param n Number of columns in a
- *
- * \param w
- * On exit, contains  \f$W\f$.
- *
- * \param v
- * On exit, contains \f$V\f$.
- *
+ * \param w On exit, contains \f$ W \f$.
+ * \param v On exit, contains \f$ V \f$.
  * \todo Templatize on container element type
  */
-
-template <class RandomContainer>
+template <typename RandomContainer>
 void svdcmp(RandomContainer &a, const unsigned m, const unsigned n,
             RandomContainer &w, RandomContainer &v) {
   Require(a.size() == m * n);
@@ -60,14 +46,17 @@ void svdcmp(RandomContainer &a, const unsigned m, const unsigned n,
   using namespace rtt_dsxx;
   using std::fabs;
   using std::max;
+  using std::min;
   using std::sqrt;
 
-  // More than 30 iterations says something is terribly wrong -- this
-  // shouldn't happen even for very large matrices.
+  // More than 30 iterations says something is terribly wrong -- this shouldn't
+  // happen even for very large matrices.
   const unsigned MAX_ITERATIONS = 30;
-
-  using std::min;
-  using std::max;
+  // minimum representable value
+  double const mrv =
+      std::numeric_limits<typename RandomContainer::value_type>::min();
+  double const eps =
+      std::numeric_limits<typename RandomContainer::value_type>::epsilon();
 
   w.resize(n);
   v.resize(n * n);
@@ -87,7 +76,7 @@ void svdcmp(RandomContainer &a, const unsigned m, const unsigned n,
     if (i < m) {
       for (unsigned k = i; k < m; k++)
         scale += fabs(a[k + m * i]);
-      if (scale != 0.0) {
+      if (std::abs(scale) > mrv) {
         double rscale = 1 / scale;
         for (unsigned k = i; k < m; k++) {
           a[k + m * i] *= rscale;
@@ -103,7 +92,7 @@ void svdcmp(RandomContainer &a, const unsigned m, const unsigned n,
           s = 0;
           for (unsigned k = i; k < m; k++)
             s += a[k + m * i] * a[k + m * j];
-          Check(h != 0.0);
+          Check(std::abs(h) > mrv);
           f = s / h;
           for (unsigned k = i; k < m; k++)
             a[k + m * j] += f * a[k + m * i];
@@ -119,7 +108,7 @@ void svdcmp(RandomContainer &a, const unsigned m, const unsigned n,
     if (i < m) {
       for (unsigned k = l; k < n; k++)
         scale += fabs(a[i + m * k]);
-      if (scale != 0.0) {
+      if (std::abs(scale) > mrv) {
         double rscale = 1 / scale;
         for (unsigned k = l; k < n; k++) {
           a[i + m * k] *= rscale;
@@ -150,7 +139,7 @@ void svdcmp(RandomContainer &a, const unsigned m, const unsigned n,
   // Accumulation of right-hand transformations
   for (unsigned i = n - 1; i < n; i--) {
     if (i != n - 1) {
-      if (g != 0.0) {
+      if (std::abs(g) > mrv) {
         double rg = 1 / g;
         for (unsigned j = l; j < n; j++)
           v[j + n * i] = rg * (a[i + m * j] / a[i + m * l]);
@@ -176,7 +165,7 @@ void svdcmp(RandomContainer &a, const unsigned m, const unsigned n,
     g = w[i];
     for (unsigned j = l; j < n; j++)
       a[i + m * j] = 0.0;
-    if (g != 0.0) {
+    if (std::abs(g) > mrv) {
       double rg = 1 / g;
       for (unsigned j = l; j < n; j++) {
         double s = 0;
@@ -204,25 +193,25 @@ void svdcmp(RandomContainer &a, const unsigned m, const unsigned n,
     {
       bool flag = true;
       // Check for splitting.
-      Check(rv1[0] + norm == norm);
-      unsigned l = k;
-      for (; l <= k; l--) {
-        unsigned l1 = l - 1;
-        if (fabs(rv1[l]) + norm == norm) {
+      Check(rtt_dsxx::soft_equiv(rv1[0] + norm, norm));
+      unsigned ell = k;
+      for (; ell <= k; ell--) {
+        unsigned l1 = ell - 1;
+        if (rtt_dsxx::soft_equiv(fabs(rv1[ell]) + norm, norm, eps)) {
           flag = false;
           break;
         }
-        if (fabs(w[l1]) + norm == norm)
+        if (rtt_dsxx::soft_equiv(fabs(w[l1]) + norm, norm, eps))
           break;
       }
       if (flag) {
-        unsigned l1 = l - 1;
+        unsigned l1 = ell - 1;
         double c = 0;
         double s = 1;
-        for (unsigned i = l; i <= k; i++) {
+        for (unsigned i = ell; i <= k; i++) {
           double f = s * rv1[i];
           rv1[i] *= c;
-          if (fabs(f) + norm != norm) {
+          if (!rtt_dsxx::soft_equiv(fabs(f) + norm, norm, eps)) {
             g = w[i];
             double h = pythag(f, g);
             w[i] = h;
@@ -238,7 +227,7 @@ void svdcmp(RandomContainer &a, const unsigned m, const unsigned n,
         }
       }
       double z = w[k];
-      if (l == k) {
+      if (ell == k) {
         if (z < 0.0) {
           w[k] = -z;
           for (unsigned j = 0; j < n; j++)
@@ -246,7 +235,7 @@ void svdcmp(RandomContainer &a, const unsigned m, const unsigned n,
         }
         break;
       } else {
-        double x = w[l];
+        double x = w[ell];
         double y = w[k1];
         g = rv1[k1];
         double h = rv1[k];
@@ -257,7 +246,7 @@ void svdcmp(RandomContainer &a, const unsigned m, const unsigned n,
         f = ((x - z) * (x + z) + h * (y / (f + g) - h)) / x;
         double c = 1;
         double s = 1;
-        for (unsigned j = l; j < k; j++) {
+        for (unsigned j = ell; j < k; j++) {
           int i = j + 1;
           g = rv1[i];
           y = w[i];
@@ -279,7 +268,7 @@ void svdcmp(RandomContainer &a, const unsigned m, const unsigned n,
           }
           z = pythag(f, h);
           w[j] = z;
-          if (z != 0.0) {
+          if (std::abs(z) > eps) {
             c = f / z;
             s = h / z;
           }
@@ -292,7 +281,7 @@ void svdcmp(RandomContainer &a, const unsigned m, const unsigned n,
             a[jj + m * i] = -y * s + z * c;
           }
         }
-        rv1[l] = 0;
+        rv1[ell] = 0;
         rv1[k] = f;
         w[k] = x;
       }

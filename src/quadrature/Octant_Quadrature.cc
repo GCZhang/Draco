@@ -1,22 +1,17 @@
-//----------------------------------*-C++-*----------------------------------------------//
+//----------------------------------*-C++-*-----------------------------------//
 /*!
  * \file   quadrature/Octant_Quadrature.cc
  * \author Kent Budge
  * \date   Friday, Nov 30, 2012, 08:27 am
  * \brief  Implementation for Octant_Quadrature
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------------------//
-// $Id: Octant_Quadrature.cc 6718 2012-08-30 20:03:01Z warsa $
-//---------------------------------------------------------------------------------------//
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
+//----------------------------------------------------------------------------//
 
 #include "Octant_Quadrature.hh"
-
+#include "ds++/DracoStrings.hh"
 #include "ds++/Soft_Equivalence.hh"
-#include "ds++/to_string.hh"
 #include "units/PhysicalConstants.hh"
-
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
@@ -25,13 +20,13 @@
 namespace rtt_quadrature {
 using namespace rtt_dsxx;
 
-//---------------------------------------------------------------------------------------//
+//----------------------------------------------------------------------------//
 
 bool Octant_Quadrature::has_axis_assignments() const {
   return has_axis_assignments_;
 }
 
-//---------------------------------------------------------------------------------------//
+//----------------------------------------------------------------------------//
 vector<Ordinate> Octant_Quadrature::create_ordinates_(
     unsigned const dimension, Geometry const geometry, double const norm,
     unsigned const mu_axis, unsigned const eta_axis,
@@ -45,12 +40,12 @@ vector<Ordinate> Octant_Quadrature::create_ordinates_(
 
   create_octant_ordinates_(mu, eta, wt);
 
-  unsigned const octantOrdinates = mu.size();
+  size_t const octantOrdinates = mu.size();
   Check(octantOrdinates > 0);
   Check(eta.size() == octantOrdinates);
   Check(wt.size() == octantOrdinates);
 
-  unsigned numOrdinates = octantOrdinates * 8;
+  size_t numOrdinates = octantOrdinates * 8;
   mu.resize(numOrdinates);
   eta.resize(numOrdinates);
   wt.resize(numOrdinates);
@@ -58,7 +53,7 @@ vector<Ordinate> Octant_Quadrature::create_ordinates_(
   // Evaluate mu and eta for octants 2-4
   for (size_t octant = 2; octant <= 4; ++octant)
     for (size_t n = 0; n <= octantOrdinates - 1; ++n) {
-      unsigned const m = (octant - 1) * octantOrdinates + n;
+      size_t const m = (octant - 1) * octantOrdinates + n;
       Check(m < mu.size() && m < eta.size() && m < wt.size());
       switch (octant) {
       case 2:
@@ -156,12 +151,12 @@ vector<Ordinate> Octant_Quadrature::create_ordinates_(
     // Now sum around the axis.
     m = 0;
     numOrdinates /= 4;
-    double eta = Result[0].eta();
+    double eta0 = Result[0].eta();
     double sum = Result[0].wt();
     for (unsigned i = 1; i < numOrdinates; ++i) {
-      double old_eta = eta;
-      eta = Result[i].eta();
-      if (!soft_equiv(eta, old_eta)) {
+      double old_eta = eta0;
+      eta0 = Result[i].eta();
+      if (!soft_equiv(eta0, old_eta)) {
         // New level
         Result[m++] = Ordinate(old_eta, sum);
         sum = Result[i].wt();
@@ -171,7 +166,7 @@ vector<Ordinate> Octant_Quadrature::create_ordinates_(
       }
     }
     // Final level
-    Result[m++] = Ordinate(eta, sum);
+    Result[m++] = Ordinate(eta0, sum);
     numOrdinates = m;
     Result.resize(numOrdinates);
 
@@ -198,7 +193,7 @@ vector<Ordinate> Octant_Quadrature::create_ordinates_(
   return Result;
 }
 
-//---------------------------------------------------------------------------------------//
+//----------------------------------------------------------------------------//
 vector<Ordinate> Octant_Quadrature::create_ordinates_(
     unsigned dimension, Geometry geometry, double norm,
     bool include_starting_directions, bool include_extra_directions) const {
@@ -250,7 +245,7 @@ vector<Ordinate> Octant_Quadrature::create_ordinates_(
                            include_extra_directions);
 }
 
-//---------------------------------------------------------------------------------------//
+//----------------------------------------------------------------------------//
 /*!
  * Pure virtual used in conjuction with child implementations, for common
  * features.
@@ -271,6 +266,6 @@ string Octant_Quadrature::as_text(string const &indent) const {
 
 } // end namespace rtt_quadrature
 
-//---------------------------------------------------------------------------------------//
-//                 end of Octant_Quadrature.cc
-//---------------------------------------------------------------------------------------//
+//----------------------------------------------------------------------------//
+// end of Octant_Quadrature.cc
+//----------------------------------------------------------------------------//

@@ -3,15 +3,12 @@
  * \file   parser/Parse_Table.hh
  * \author Kent G. Budge
  * \brief  Definition of Keyword and Parse_Table.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
-#ifndef CCS4_Parse_Table_HH
-#define CCS4_Parse_Table_HH
+#ifndef rtt_Parse_Table_HH
+#define rtt_Parse_Table_HH
 
 #include "Token_Stream.hh"
 #include <cstring> // strcmp
@@ -89,6 +86,25 @@ struct Keyword {
      * moniker in the same Parse_Table.
      */
   char const *module;
+
+  /*! Explanation of keyword.
+   *
+   * This optional member is a brief description of the keyword. If the
+   * parser sees a keyword in the Token_Stream that it does not recognize,
+   * it will list the recognized keywords and, if a keyword has a non-null
+   * description, it will print that description.
+   */
+  char const *description;
+
+  Keyword()
+      : moniker(nullptr), func(nullptr), index(0), module(nullptr),
+        description(nullptr) {}
+
+  Keyword(char const *moniker, void (*func)(Token_Stream &, int),
+          int const index, char const *module,
+          char const *description = nullptr)
+      : moniker(moniker), func(func), index(index), module(module),
+        description(description) {}
 };
 
 //-------------------------------------------------------------------------//
@@ -171,10 +187,10 @@ public:
   // MANIPULATORS
 
   //! Add keywords to the table.
-  void add(Keyword const *table, size_t count);
+  void add(Keyword const *table, size_t count) noexcept(false);
 
   //! Add the keywords from another Parse_Table
-  void add(Parse_Table const &);
+  void add(Parse_Table const &) noexcept(false);
 
   //! Remove a keyword from the table.
   void remove(char const *);
@@ -223,10 +239,10 @@ private:
 
     bool operator()(Keyword const &k1, Keyword const &k2) const;
 
-    bool operator()(Keyword const &keyword, Token const &token) const;
+    bool operator()(Keyword const &keyword, Token const &token) const noexcept;
 
     int kk_comparison(char const *, char const *) const;
-    int kt_comparison(char const *, char const *) const;
+    int kt_comparison(char const *, char const *) const noexcept;
 
   private:
     unsigned char flags_;
@@ -235,7 +251,7 @@ private:
   // IMPLEMENTATION
 
   //! Sort and check the table following the addition of new keywords
-  void sort_table_();
+  void sort_table_() noexcept(false);
 
   // DATA
 
@@ -273,9 +289,9 @@ inline bool operator==(Keyword const &a, Keyword const &b) {
 
 DLL_PUBLIC_parser bool Is_Well_Formed_Keyword(Keyword const &key);
 
-} // rtt_parser
+} // namespace rtt_parser
 
-#endif // CCS4_Parse_Table_HH
+#endif // rtt_Parse_Table_HH
 
 //---------------------------------------------------------------------------//
 // end of Parse_Table.hh

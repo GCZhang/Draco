@@ -1,7 +1,7 @@
 ;; ======================================================================
 ;; draco-config-modes.el
 ;;
-;; Copyright (C) 2016 Los Alamos National Security, LLC
+;; Copyright (C) 2016-2019 Triad National Security, LLC
 ;;
 ;; Configure a variety of packages, upon request of user.
 ;;
@@ -249,8 +249,8 @@ auto-mode-alist.
 		      ("\\.c$"      . c-mode)   ; to edit C code
 		      ("\\.cu$"     . c-mode)   ; to edit CUDA kernels
 		      ("\\.h$"      . c-mode)   ; to edit C code
-		      ("\\.dcc$"    . c-mode)   ; to edit C code
-		      ("\\.dcc.in$" . c-mode)   ; to edit C code
+		      ("\\.dcc$"    . c++-mode)   ; to edit C code
+		      ("\\.dcc.in$" . c++-mode)   ; to edit C code
  		      ("\\.dot$"    . c-mode)  ; for dot files
 		      ) auto-mode-alist))
       (defun draco-menu-insert-comments-cc ()
@@ -464,19 +464,31 @@ auto-mode-alist."
 	     ) auto-mode-alist))
 
     (defun draco-f90-mode-hook ()
-      "Hooks added to F90 mode"
+      "Hooks added to F90 mode. See https://jblevins.org/log/f90-mode"
       (local-set-key [(f5)]         'draco-f90-subroutine-divider)
       (local-set-key [(control f6)] 'draco-f90-insert-document)
       (local-set-key [(f6)]         'draco-f90-comment-divider)
       (draco-mode-update-menu (draco-menu-insert-comments-f90))
       (set-fill-column draco-code-comment-width)
+      (abbrev-mode 1)
+      (setq f90-font-lock-keywords f90-font-lock-keywords-3)
+      (setq f90-beginning-ampersand nil)
+      (setq f90-associate-indent 0)
       (require 'fill-column-indicator)
       (fci-mode))
      ;; let .F denone Fortran and not freeze files
     (defvar crypt-freeze-vs-fortran nil)
     (add-hook 'f90-mode-hook 'draco-f90-mode-hook)
     (add-hook 'f90-mode-hook 'turn-on-draco-mode)
-    (add-hook 'f90-mode-hook 'turn-on-auto-fill)))
+    (add-hook 'f90-mode-hook 'turn-on-auto-fill)
+    ; should add this sometime
+    ; (add-hook 'font-lock-mode-hook
+    ;          '(lambda ()
+    ;             (if (major-mode 'f90-mode)
+    ;                 (draco-f90-font-lock)))) ; create this function
+                                        ; based on draco-font-lock but
+                                        ; for f90
+    ))
 
 ;; ========================================
 ;; FORTRAN
@@ -520,7 +532,8 @@ auto-mode-alist."
       (draco-mode-update-menu (draco-menu-insert-comments-f77)))
     (add-hook 'fortran-mode-hook 'draco-fortran-mode-hook)
     (add-hook 'fortran-mode-hook 'turn-on-draco-mode)
-    (add-hook 'fortran-mode-hook 'turn-on-auto-fill)))
+    (add-hook 'fortran-mode-hook 'turn-on-auto-fill)
+    ))
 
 ;; ========================================
 ;; ChangeLog

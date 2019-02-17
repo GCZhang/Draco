@@ -1,10 +1,10 @@
 # crontab for sn-fey
 
 # Sync git repositories to local FS and run CI tests
-# */15 * * * * /usr/projects/jayenne/regress/draco/regression/sync_repository.sh &> /usr/projects/jayenne/regress/logs/sync_repository.sn.log
+*/20 * * * * /usr/projects/jayenne/regress/draco/regression/sync_repository.sh
 
-# Update the run scripts in the regression directory (currently, only do this from ml)
-# 01 23 * * 0-6 /usr/projects/jayenne/regress/draco/regression/update_regression_scripts.sh &> /usr/projects/jayenne/regress/logs/update_regression_scripts.log
+# Update the run scripts in the regression directory
+01 23 * * 0-6 /usr/projects/jayenne/regress/draco/regression/update_regression_scripts.sh
 
 #------------------------------------------------------------------------------#
 # Regressions options:
@@ -18,15 +18,37 @@
 #    pgi   - build with the PGI compiler
 #    nr    - build with non-reproducible option.
 #    fulldiagnostics - build with IEEE checks enabled
+#    vtest           - verification tests (long running tests)
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
-# Intel/16.0.3 and OpenMPI/1.10.3
+# Intel/18.0.2 and OpenMPI/2.1.2
 #------------------------------------------------------------------------------#
 
-01 00 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Debug -p "draco jayenne capsaicin" &> /usr/projects/jayenne/regress/logs/sn-Debug-master.log
+01 00 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Debug -p \"draco jayenne core trt npt\"
 
-01 00 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Release -p "draco jayenne capsaicin" &> /usr/projects/jayenne/regress/logs/sn-Release-master.log
+01 00 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Release -p \"draco jayenne core trt npt\"
+
+01 01 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Release -p \" jayenne core trt npt\" -e vtest
+
+#------------------------------------------------------------------------------#
+# Special: NR, PerfBench and FullDiagnostics regressions.
+#------------------------------------------------------------------------------#
+
+# intel-18.0.2 + openmpi-2.1.2
+# 01 00 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Release -p \"draco jayenne core trt npt\" -e newtools
+
+# gcc-6.4.0 + openmpi-2.1.2
+01 00 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Release -p \"draco jayenne core trt npt\" -e gcc640
+
+# Floating point traps, etc.
+01 01 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Debug -e fulldiagnostics -p \"draco jayenne core trt npt\"
+
+# non-reproducible flavor (IMC)
+01 03 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Release -e nr -p \"jayenne\"
+
+# performance over time
+01 03 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Release -e perfbench -p \"jayenne core trt npt\"
 
 #------------------------------------------------------------------------------#
 # Periodic usage reports
@@ -34,7 +56,7 @@
 
 # 01 00 1 * * /usr/projects/packages/user_contrib/usage_logs/bin/user_contrib_monthly_report.sh
 
-# 01 01 * * 4 /users/kellyt/bin/weekly_report.sh
+01 01 * * 4 /users/kellyt/bin/weekly_report.sh
 
 # |    |    |    |    |   |
 # |    |    |    |    |   +- command

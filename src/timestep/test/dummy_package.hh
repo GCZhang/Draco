@@ -4,17 +4,15 @@
  * \author John McGhee
  * \date   Thu Aug 27 07:48:41 1998
  * \brief  A dummy package to exercize the field time-step advisors.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef __timestep_test_dummy_package_hh__
 #define __timestep_test_dummy_package_hh__
 
-#include "ds++/SP.hh"
+#include "ds++/config.h"
+#include <memory>
 #include <vector>
 
 // FORWARD REFERENCES
@@ -22,12 +20,14 @@
 namespace rtt_timestep {
 class ts_manager;
 class field_ts_advisor;
-}
+} // namespace rtt_timestep
 
 namespace rtt_timestep_test {
 
 //===========================================================================//
-/*! \class dummy_package - Exercizes the field time-step advisors.
+/*! 
+ * \class dummy_package 
+ * \brief Exercizes the field time-step advisors.
  *
  * This class serves as an example of how any particular package can make use
  * of the time-step manaager/advisor utility. It also exercizes the field
@@ -63,9 +63,9 @@ private:
   // DATA
 
   rtt_timestep::ts_manager &tsm;
-  rtt_dsxx::SP<rtt_timestep::field_ts_advisor> sp_te;
-  rtt_dsxx::SP<rtt_timestep::field_ts_advisor> sp_ti;
-  rtt_dsxx::SP<rtt_timestep::field_ts_advisor> sp_ri;
+  std::shared_ptr<rtt_timestep::field_ts_advisor> sp_te;
+  std::shared_ptr<rtt_timestep::field_ts_advisor> sp_ti;
+  std::shared_ptr<rtt_timestep::field_ts_advisor> sp_ri;
 };
 
 } // end namespace rtt_timestep_test

@@ -3,12 +3,12 @@
 # author Kelly Thompson <kgt@lanl.gov>
 # date   2016 June 14
 # brief  CTest regression script for Draco on Linux64
-# note   Copyright (C) 2016 Los Alamos National Security, LLC.
+# note   Copyright (C) 2016-2019 Triad National Security, LLC.
 #        All rights reserved.
 #------------------------------------------------------------------------------#
 # Ref: http://www.cmake.org/Wiki/CMake_Scripting_Of_CTest
 
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.9.0)
 
 # Use:
 # - See jayenne/regression/regression_master.sh
@@ -36,6 +36,7 @@ set_git_command("Draco.git")
 set( CTEST_INITIAL_CACHE "
 CMAKE_VERBOSE_MAKEFILE:BOOL=ON
 CMAKE_BUILD_TYPE:STRING=${CTEST_BUILD_CONFIGURATION}
+CTEST_CONFIGURATION_TYPE:STRING=${CTEST_CONFIGURATION_TYPE}
 CMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
 CTEST_CMAKE_GENERATOR:STRING=${CTEST_CMAKE_GENERATOR}
 CTEST_USE_LAUNCHERS:STRING=${CTEST_USE_LAUNCHERS}
@@ -43,13 +44,16 @@ CTEST_TEST_TIMEOUT:STRING=${CTEST_TEST_TIMEOUT}
 
 VENDOR_DIR:PATH=${VENDOR_DIR}
 AUTODOCDIR:PATH=${AUTODOCDIR}
-${TEST_PPE_BINDIR}
-USE_CUDA:BOOL=${USE_CUDA}
+WITH_CUDA:BOOL=${WITH_CUDA}
 
-${INIT_CACHE_PPE_PREFIX}
 ${TOOLCHAIN_SETUP}
 # Set DRACO_DIAGNOSTICS and DRACO_TIMING:
 ${FULLDIAGNOSTICS}
+
+# vtest, perfbench options
+${CUSTOM_VARS}
+${DRACO_C4}
+${DRACO_LIBRARY_TYPE}
 ${BOUNDS_CHECKING}
 ")
 
@@ -76,6 +80,9 @@ if( ${CTEST_CONFIGURE} )
     message( "ctest_empty_binary_directory( ${CTEST_BINARY_DIRECTORY} )" )
     ctest_empty_binary_directory( ${CTEST_BINARY_DIRECTORY} )
   endif()
+  # dummy command to give the file system time to catch up before creating
+  # CMakeCache.txt.
+  # file( WRITE $ENV{TEMP}/foo.txt ${CTEST_INITIAL_CACHE} )
   file( WRITE ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt ${CTEST_INITIAL_CACHE} )
 endif()
 
@@ -123,7 +130,6 @@ endif()
 
 # Build
 if( ${CTEST_BUILD} )
-
    message( "ctest_build(
    TARGET install
    RETURN_VALUE res
@@ -173,3 +179,7 @@ if( ${CTEST_SUBMIT} )
 endif()
 
 message("end of ${CTEST_SCRIPT_NAME}.")
+
+#------------------------------------------------------------------------------#
+# End Draco_Linux64.cmake
+#------------------------------------------------------------------------------#

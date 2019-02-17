@@ -3,11 +3,8 @@
  *  \author Kelly Thompson
  *  \brief  This file defines a fundamental unit type.
  *  \date   Mon Oct 27 16:24:31 2003
- *  \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *          All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ *  \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *          All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef __units_FundUnit_hh__
@@ -19,7 +16,8 @@ namespace rtt_units {
 
 //============================================================================//
 /*!
- * \class FundUnit Fundamental Unit Type
+ * \class FundUnit
+ * \brief Fundamental Unit Type
  *
  * \sa UnitSystem
  * \sa UnitSystemType

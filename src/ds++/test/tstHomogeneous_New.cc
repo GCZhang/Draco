@@ -4,11 +4,8 @@
  * \author Kent Budge
  * \date   Tue Nov 28 09:17:23 2006
  * \brief  test the Homogeneous_New allocator class.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "ds++/Homogeneous_New.hh"
@@ -16,7 +13,6 @@
 #include "ds++/ScalarUnitTest.hh"
 
 using namespace std;
-using namespace rtt_dsxx;
 using namespace rtt_dsxx;
 
 //---------------------------------------------------------------------------//

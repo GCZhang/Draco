@@ -30,12 +30,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef TIME_INITKEYCTR_H__
 #define TIME_INITKEYCTR_H__ 1
 
+#ifdef __GNUC__
+#if (DBS_GNUC_VERSION >= 70000)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wexpansion-to-defined"
+#endif
+#endif
+
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wexpansion-to-defined"
 #endif
 
-#if TRY_OTHER
+#if defined(TRY_OTHER)
 static mrg1x32_ctr_t good_mrg1x32_1 = {{0x4b2cd7ee}};
 static mt1x32_ctr_t good_mt1x32_1 = {{0x39037a7d}};
 static mtsmall1x32_ctr_t good_mtsmall1x32_1 = {{0x7afd2a98}};
@@ -140,6 +147,13 @@ static aesni4x32_ctr_t good_aesni4x32_10 = {
 #ifdef __clang__
 // Restore clang diagnostics to previous state.
 #pragma clang diagnostic pop
+#endif
+
+#ifdef __GNUC__
+#if (DBS_GNUC_VERSION >= 70000)
+// Restore GCC diagnostics to previous state.
+#pragma GCC diagnostic pop
+#endif
 #endif
 
 #endif /* TIME_INITKEYCTR_H__ */

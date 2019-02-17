@@ -1,12 +1,10 @@
 #-----------------------------*-cmake-*----------------------------------------#
-# file   config/CMakeLists.txt
+# file   plot2D/test/CMakeLists.txt
 # author Kelly Thompson <kgt@lanl.gov>
 # date   2012 Aug 1
 # brief  Generate build project files for plot2D/test.
-# note   Copyright (C) 2016, Los Alamos National Security, LLC.
+# note   Copyright (C) 2016-2019, Triad National Security, LLC.
 #        All rights reserved.
-#------------------------------------------------------------------------------#
-# $Id$
 #------------------------------------------------------------------------------#
 project( plot2D_test CXX )
 
@@ -16,15 +14,6 @@ project( plot2D_test CXX )
 
 file( GLOB test_sources *.cc )
 file( GLOB bench_files bench/*.agr bench/*.par )
-
-# ---------------------------------------------------------------------------- #
-# Directories to search for include directives
-# ---------------------------------------------------------------------------- #
-include_directories( 
-   ${PROJECT_SOURCE_DIR}      # headers for tests
-   ${PROJECT_SOURCE_DIR}/..   # headers for package
-   ${PROJECT_BINARY_DIR}/..   # config.h
-   )
 
 # ---------------------------------------------------------------------------- #
 # Build Unit tests
@@ -40,11 +29,11 @@ find_program( NUMDIFF
 if ( NOT ${NUMDIFF} MATCHES NOTFOUND )
    add_scalar_tests(
       SOURCES "${test_sources}"
-      DEPS    "${test_deps}" ) 
+      DEPS    "${test_deps}" )
    ##------------------------------------------------------------------------##
-   ## This test doesn't behave correctly under valgrind (the pause
-   ## doesn't work and that causes everything else to fail).
-   ##------------------------------------------------------------------------##
+   ## This test doesn't behave correctly under valgrind (the pause doesn't work
+   ## and that causes everything else to fail).
+   ## ------------------------------------------------------------------------##
    set_tests_properties( plot2D_tstPlot2D
       PROPERTIES LABELS "nomemcheck" )
 endif()
@@ -88,4 +77,6 @@ set_directory_properties(
    PROPERTIES
    ADDITIONAL_MAKE_CLEAN_FILES "${extra_clean_files}" )
 
-
+#------------------------------------------------------------------------------#
+# End plot2D/test/CMakeLists.txt
+#------------------------------------------------------------------------------#

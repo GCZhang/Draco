@@ -4,11 +4,8 @@
  * \author Kelly Thompson
  * \date   Tue Nov  1 13:24:19 2005
  * \brief  Test functions provided by C4_Serial.cc/.hh
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "c4/ParallelUnitTest.hh"
@@ -25,7 +22,7 @@ using namespace std;
 
 void tstScalar(rtt_dsxx::UnitTest &ut) {
 
-// Skip the tests if code not configured with the option --with-c4=scalar.
+  // Skip the tests if code not configured with the option --with-c4=scalar.
 
 #ifndef C4_SCALAR
 
@@ -102,7 +99,7 @@ void tstScalar(rtt_dsxx::UnitTest &ut) {
   request = rtt_c4::receive_async(&int3, 1, 0, 0);
   rtt_c4::send_async(request, &int3, 1, 0, 0);
 
-  if (request.inuse() == 0 && request.count() == 0) {
+  if (request.inuse() == 0 && request.complete()) {
     PASSMSG("For --with-c4=scalar, successful test of send_async(const "
             "T*,int,int,int) and receive_async( C4_Req&,T*,int,int,int).");
   } else {
@@ -116,7 +113,6 @@ void tstScalar(rtt_dsxx::UnitTest &ut) {
 }
 
 //---------------------------------------------------------------------------//
-
 int main(int argc, char *argv[]) {
   rtt_c4::ParallelUnitTest ut(argc, argv, rtt_dsxx::release);
   try {

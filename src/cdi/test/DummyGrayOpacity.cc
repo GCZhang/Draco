@@ -4,11 +4,11 @@
  * \author Kelly Thompson
  * \date   Mon Jan 8 15:33:51 2001
  * \brief  DummyGrayOpacity class implementation file.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
  *         All rights reserved.
  */
 //---------------------------------------------------------------------------//
-// $Id$
+
 //---------------------------------------------------------------------------//
 
 #include "DummyGrayOpacity.hh"
@@ -92,7 +92,7 @@ DummyGrayOpacity::getOpacity(double targetTemperature,
   return grayOpacity;
 }
 
-} // end rtt_cdi_test
+} // namespace rtt_cdi_test
 
 //---------------------------------------------------------------------------//
 // end of DummyGrayOpacity.cc

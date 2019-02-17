@@ -3,10 +3,8 @@
  * \file   ds++/Index_Counter.hh
  * \author Mike Buksas
  * \date   Tue Jan 31 16:45:39 2006
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef dsxx_Index_Counter_hh
@@ -33,8 +31,6 @@ template <unsigned D, int OFFSET> class Index_Converter;
 template <unsigned D, int OFFSET> class Index_Counter {
 public:
   friend class Index_Converter<D, OFFSET>;
-
-  // NESTED CLASSES AND TYPEDEFS
 
   // CREATORS
 
@@ -63,7 +59,6 @@ public:
 
   // Accessors for the 1-index
   int get_index() const { return index; }
-  //    operator int()  const { return index; }
 
   // Accessors for the N-indices
   int get_index(unsigned d) const {
@@ -96,18 +91,10 @@ private:
   void decrement();
 
   bool dimension_okay(size_t d) const { return d < D; }
-
-  // Private constructor for use by Index_Converter
-  // kgbudge (091201): Appears to be dead code
-  //     Index_Counter(const Index_Set<D,OFFSET>& base,
-  //                   const int index, int const * const indices);
 };
 
 //---------------------------------------------------------------------------//
-/**
- * \brief Construct from an Index_Set object
- *
- */
+//! Construct from an Index_Set object
 template <unsigned D, int OFFSET>
 Index_Counter<D, OFFSET>::Index_Counter(const Index_Set<D, OFFSET> &converter)
     : index_set(converter), index(OFFSET), in_range(true) {
@@ -120,10 +107,7 @@ Index_Counter<D, OFFSET>::Index_Counter(const Index_Set<D, OFFSET> &converter)
 //---------------------------------------------------------------------------//
 
 //---------------------------------------------------------------------------//
-/**
- * \brief Increment the iterator
- *
- */
+//! Increment the iterator
 template <unsigned D, int OFFSET> void Index_Counter<D, OFFSET>::increment() {
 
   Require(in_range);
@@ -131,7 +115,7 @@ template <unsigned D, int OFFSET> void Index_Counter<D, OFFSET>::increment() {
   ++indices[0];
   ++index;
 
-  for (size_t d = 0; d < D - 1; ++d) {
+  for (unsigned d = 0; d < D - 1; ++d) {
     if (indices[d] > index_set.max_of_index(d)) {
       ++indices[d + 1];
       indices[d] = index_set.min_of_index(d);
@@ -146,10 +130,7 @@ template <unsigned D, int OFFSET> void Index_Counter<D, OFFSET>::increment() {
 }
 
 //---------------------------------------------------------------------------//
-/**
- * \brief Decrement the iterator
- *
- */
+//! Decrement the iterator
 template <unsigned D, int OFFSET> void Index_Counter<D, OFFSET>::decrement() {
 
   Require(in_range);
@@ -157,7 +138,7 @@ template <unsigned D, int OFFSET> void Index_Counter<D, OFFSET>::decrement() {
   --indices[0];
   --index;
 
-  for (size_t d = 0; d < D - 1; ++d) {
+  for (unsigned d = 0; d < D - 1; ++d) {
     if (indices[d] < index_set.min_of_index(d)) {
       indices[d] = index_set.max_of_index(d);
       --indices[d + 1];
@@ -176,5 +157,5 @@ template <unsigned D, int OFFSET> void Index_Counter<D, OFFSET>::decrement() {
 #endif // dsxx_Index_Counter_hh
 
 //---------------------------------------------------------------------------//
-//              end of ds++/Index_Counter.hh
+// end of ds++/Index_Counter.hh
 //---------------------------------------------------------------------------//

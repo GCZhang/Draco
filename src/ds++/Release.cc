@@ -4,9 +4,8 @@
  * \author Thomas Evans
  * \date   Thu Jul 15 09:31:44 1999
  * \brief  Provides the function definition for Release.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "Release.hh"
@@ -62,12 +61,12 @@ std::string print_devs(size_t const maxlinelen, std::string const &line_name,
 const std::string release() {
   std::ostringstream pkg_release;
   // Name and version
-  pkg_release << "Draco-" << DRACO_VERSION_MAJOR << "_" << DRACO_VERSION_MINOR
-              << "_" << DRACO_VERSION_PATCH;
+  pkg_release << "Draco-" << Draco_VERSION_MAJOR << "_" << Draco_VERSION_MINOR
+              << "_" << Draco_VERSION_PATCH;
 
   // build date and type
-  std::string const build_date(DRACO_BUILD_DATE);
-  std::string const build_type(DRACO_BUILD_TYPE);
+  std::string const build_date(Draco_BUILD_DATE);
+  std::string const build_type(BUILD_TYPE);
   pkg_release << ", build date " << build_date << "; build type: " << build_type
 #ifdef DBC
               << "; DBC: " << DBC
@@ -88,66 +87,94 @@ const std::string release() {
 //---------------------------------------------------------------------------//
 /*! \brief Return a list of Draco contributing authors
  *
+ * \param[in] use_doxygen_formatting If true, use extra decoration in the
+ *              output.
+ *
  * Data is collected from git (see regression/alist.sh) based on LOC
  * added/removed. Because the git repository only includes code provided
  * starting at draco-6_0_0, all LOC were attributed to KT at draco-6_0_0 since
  * he converted the svn repo to git. The remaining numbers are computed by
  * couting LOC added/removed since draco-6_0_0.
  */
-
-const std::string author_list() {
+const std::string author_list(bool const use_doxygen_formatting) {
   std::stringstream alist;
 
   mmdevs current_developers;
-  current_developers.insert(fomdev(218815, "Kelly G. Thompson"));
-  current_developers.insert(fomdev(6075, "James S. Warsa"));
-  current_developers.insert(fomdev(4382, "Kent G. Budge"));
-  current_developers.insert(fomdev(2985, "Jae H. Chang"));
-  current_developers.insert(fomdev(1766, "Alex R. Long"));
-  current_developers.insert(fomdev(992, "Rob B. Lowrie"));
-  current_developers.insert(fomdev(168, "Matt A. Cleveland"));
-  current_developers.insert(fomdev(118, "Massimiliano Rosa"));
-  current_developers.insert(fomdev(94, "Kendra P. Keady"));
-  current_developers.insert(fomdev(8, "Andrew T. Till"));
-  current_developers.insert(fomdev(5, "Ryan T. Wollaeger"));
-  current_developers.insert(fomdev(5, "Kris C. Garrett"));
+  // not totally fair... KT got credit for LOC when svn repository was converted
+  // to git.
+  current_developers.insert(fomdev(228253, "Kelly G. Thompson"));
+  current_developers.insert(fomdev(12695, "Kent G. Budge"));
+  current_developers.insert(fomdev(3464, "Ryan T. Wollaeger"));
+  current_developers.insert(fomdev(2993, "James S. Warsa"));
+  current_developers.insert(fomdev(2626, "Alex R. Long"));
+  current_developers.insert(fomdev(1261, "Kendra P. Keady"));
+  current_developers.insert(fomdev(398, "Jae H. Chang"));
+  current_developers.insert(fomdev(241, "Matt A. Cleveland"));
+  current_developers.insert(fomdev(120, "Andrew T. Till"));
+  current_developers.insert(fomdev(61, "Tim Kelley"));
 
   mmdevs prior_developers;
 
-  prior_developers.insert( fomdev(4451,"Jeff D. Densmore"));
-  prior_developers.insert(fomdev(1160, "Allan B. Wollaber"));
+  prior_developers.insert(fomdev(4868, "Jeff D. Densmore"));
+  prior_developers.insert(fomdev(4057, "Gabriel M. Rockefeller"));
+  prior_developers.insert(fomdev(2278, "Allan B. Wollaber"));
+  prior_developers.insert(fomdev(1450, "Rob B. Lowrie"));
   prior_developers.insert(fomdev(995, "Lori A. Pritchett-Sheats"));
-  prior_developers.insert(fomdev(774, "Katherine J. Wang"));
-  prior_developers.insert(fomdev(766, "Gabriel M. Rockefeller"));
-  prior_developers.insert(fomdev(470, "Paul W. Talbot"));
-  // < 100 lines
-  // prior_developers.insert(fomdev(44, "Nick Myers"));
+  prior_developers.insert(fomdev(308, "Paul W. Talbot"));
+  prior_developers.insert(fomdev(262, "Katherine J. Wang"));
+  prior_developers.insert(fomdev(78, "Peter Ahrens"));
+  prior_developers.insert(fomdev(25, "Daniel Holladay"));
+  prior_developers.insert(fomdev(9, "Massimiliano Rosa"));
+  prior_developers.insert(fomdev(7, "Todd J. Urbatsch"));
 
-  size_t const maxlinelen(80);
+  // Previous authors with no current LOC attribution:
+  prior_developers.insert(fomdev(1, "Jeff Furnish"));
+  prior_developers.insert(fomdev(1, "John McGhee"));
+  prior_developers.insert(fomdev(1, "Kris C. Garrett"));
+  prior_developers.insert(fomdev(1, "Mike Buksas"));
+  prior_developers.insert(fomdev(1, "Nick Myers"));
+  prior_developers.insert(fomdev(1, "Paul Henning"));
+  prior_developers.insert(fomdev(1, "Randy Roberts"));
+  prior_developers.insert(fomdev(1, "Seth Johnson"));
+  prior_developers.insert(fomdev(1, "Todd Adams"));
+  prior_developers.insert(fomdev(1, "Tom Evans"));
+
+  size_t maxlinelen(80);
   std::string line_name("CCS-2 Draco Team: ");
-  alist << rtt_dsxx::print_devs(maxlinelen, line_name, current_developers);
 
-  line_name = "Prior Contributers: ";
+  if (use_doxygen_formatting) {
+    maxlinelen = 400;
+    alist << "\n\\par " << line_name << "\n\n";
+    line_name = "";
+  }
+
+  alist << rtt_dsxx::print_devs(maxlinelen, line_name, current_developers);
+  alist << "\n";
+
+  line_name = std::string("Prior Contributers: ");
+  if (use_doxygen_formatting) {
+    alist << "\\par " << line_name << "\n\n";
+    line_name = "";
+  }
   alist << rtt_dsxx::print_devs(maxlinelen, line_name, prior_developers);
 
   return alist.str();
 }
 
 //---------------------------------------------------------------------------//
-/*! \brief Print a Copyright note with an author list:
- */
+//! Print a Copyright note with an author list:
 const std::string copyright() {
   std::ostringstream msg;
 
   msg << author_list() << "\n"
-      << "Copyright (C) 2016 Los Alamos National Security, LLC. "
+      << "Copyright (C) 2016-2019 Triad National Security, LLC. "
          "(LA-CC-16-016)"
       << std::endl;
 
   return msg.str();
 }
 
-} // end of rtt_dsxx
+} // namespace rtt_dsxx
 
 //---------------------------------------------------------------------------//
 //! This version can be called by Fortran and wraps the C++ version.

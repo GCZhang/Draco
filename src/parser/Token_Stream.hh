@@ -3,18 +3,16 @@
  * \file   Token_Stream.hh
  * \author Kent G. Budge
  * \brief  Definition of class Token_Stream.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
-#ifndef CCS4_Token_Stream_HH
-#define CCS4_Token_Stream_HH
+#ifndef rtt_Token_Stream_HH
+#define rtt_Token_Stream_HH
 
 #include "Token.hh"
 #include <deque>
+#include <memory>
 
 namespace rtt_parser {
 //-------------------------------------------------------------------------//
@@ -23,7 +21,6 @@ namespace rtt_parser {
  *
  * This is an exception class for reporting syntax errors in simple parsers.
  */
-
 class Syntax_Error : public std::runtime_error {
 public:
   // CREATORS
@@ -40,7 +37,7 @@ public:
  * problem specification language used in such input files has some
  * similarities to a programming language, though it is typically simpler than
  * a high-level language like C++ or Java. The problem specification expressed
- * in this problem specification langauge must be scanned and parsed by the
+ * in this problem specification language must be scanned and parsed by the
  * simulation code in order to load the data structures and control parameters
  * required to run the simulation.
  *
@@ -57,8 +54,8 @@ public:
  *
  * Modern input readers split the task of reading a problem specification taxt
  * into scanning and parsing. Scanning is the task of converting the raw text
- * into a sequence of \b tokens\b, which represent the keywords, numerical or
- * stringn values, and other lowest-level constructs in the problem
+ * into a sequence of \b tokens, which represent the keywords, numerical or
+ * string values, and other lowest-level constructs in the problem
  * specification language. This sequence or stream of tokens is then analyzed
  * by a parser that understands the syntax of the problem specification
  * language and can extract the semantic meaning of each part of the problem
@@ -89,14 +86,9 @@ public:
  * the human client where the error occurred. For example, a \c
  * File_Token_Stream can tell the human client the line in the input file
  * where the error was detected.
- *
- * \bug It is not recommended to derive from STL containers because they do
- * not provide virtual destructors.
  */
 
-class DLL_PUBLIC_parser Token_Stream
-//    : private std::deque<Token>
-{
+class DLL_PUBLIC_parser Token_Stream {
 public:
   // CREATORS
 
@@ -108,7 +100,8 @@ public:
   Token shift();
 
   //! Look ahead at tokens.
-  Token lookahead(unsigned pos = 0);
+  // Lookahead references should remain valid until the referenced token is shifted.
+  Token const &lookahead(unsigned pos = 0);
 
   //! Insert a token into the stream at the cursor position.
   void pushback(Token const &token);
@@ -123,11 +116,11 @@ public:
   virtual void rewind() = 0;
 
   //! Report a syntax error to the user.
-  virtual void report_syntax_error(Token const &token,
-                                   std::string const &message);
+  [[noreturn]] void report_syntax_error(Token const &token,
+                                        std::string const &message);
 
   //! Report a syntax error to the user.
-  virtual void report_syntax_error(std::string const &message);
+  [[noreturn]] void report_syntax_error(std::string const &message);
 
   //! Report a semantic error to the user.
   virtual void report_semantic_error(Token const &token,
@@ -165,6 +158,21 @@ public:
      * Message to be passed to the user.
      */
   virtual void report(std::string const &message) = 0;
+
+  //-----------------------------------------------------------------------//
+  /*!
+     * \brief Send a comment, without location information, to the user.
+     *
+     * This function sends a message to the user in a stream-specific manner.
+     * This differs from the report() functions chiefly in that the message
+     * is not preceded by any location information. This is useful for
+     * extended comments, e.g., listing available keywords when the stream
+     * contains an unrecognized keyword.
+     *
+     * \param message
+     * Message to be passed to the user.
+     */
+  virtual void comment(std::string const &message) = 0;
 
   //-----------------------------------------------------------------------//
   /*! Check a syntax condition.
@@ -207,7 +215,7 @@ public:
 
   //! Return the number of errors reported to the stream since it was last
   //! constructed or rewound.
-  unsigned error_count() const { return error_count_; }
+  unsigned error_count() const noexcept { return error_count_; }
 
   //! Check that all class invariants are satisfied.
   bool check_class_invariants() const { return true; }
@@ -259,7 +267,7 @@ inline Token_Stream::Token_Stream() : error_count_(0), deq() {
 
 } // namespace rtt_parser
 
-#endif // CCS4_Token_Stream_HH
+#endif // rtt_Token_Stream_HH
 //---------------------------------------------------------------------------//
 // end of Token_Stream.hh
 //---------------------------------------------------------------------------//

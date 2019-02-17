@@ -11,9 +11,6 @@ fi
 ## ENVIRONMENTS
 ##---------------------------------------------------------------------------##
 
-# unlimit stack and core dump sizes.
-ulimit -s unlimited
-
 # Where is the vendor directory
 if [[ ! ${VENDOR_DIR} ]]; then
    if test -d /usr/projects/draco/vendors; then
@@ -52,12 +49,24 @@ else
     module load user_contrib
   fi
   module load friendly-testing
+  module use --append ${VENDOR_DIR}-ec/modulefiles
 
-  export dracomodules="intel/16.0.3 openmpi/1.10.3 mkl \
-subversion cmake numdiff git totalview hsi trilinos/12.8.1 \
-superlu-dist/4.3 metis/5.1.0 parmetis/4.0.3 ndi random123 eospac/6.2.4"
+  export dracomodules="ack htop clang-format python \
+intel/18.0.2 openmpi/2.1.2 mkl \
+subversion cmake/3.12.1 numdiff git totalview trilinos/12.10.1 \
+superlu-dist/5.1.3 metis parmetis random123 eospac/6.3.0"
+
+  if [[ -d ${VENDOR_DIR}-ec ]]; then
+    group_for_vendor_ec=`\ls -aFld ${VENDOR_DIR}-ec | awk '{ print $4 }'`
+    if [[ `groups | grep -c $group_for_vendor_ec` != 0 ]]; then
+      dracomodules="$dracomodules csk ndi"
+    fi
+  fi
 
 fi
+
+# Do not escape $ for bash completion
+shopt -s direxpand
 
 ##---------------------------------------------------------------------------##
 ## end of .bashrc_toss3

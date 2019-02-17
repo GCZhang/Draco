@@ -4,11 +4,8 @@
  * \author Thomas M. Evans
  * \date   Tue Nov 13 11:19:59 2001
  * \brief  nGray_Analytic_Odfmg_Opacity class member definitions.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "nGray_Analytic_Odfmg_Opacity.hh"
@@ -35,13 +32,13 @@ namespace rtt_cdi_analytic {
  * must be equal to the number of groups.
  *
  * \param groups vector containing the group boundaries in keV from lowest to
- * highest
- *
- * \param models vector containing SPs to Analytic_Model derived types for
- * each group, the size should be groups.size() - 1
- *
+ *           highest
+ * \param bands vector containing the band boundaries in keV from lowest to
+ *           highest
+ * \param models vector containing shared_ptrs to Analytic_Model derived types
+ *           for each group, the size should be groups.size() - 1
  * \param reaction_in rtt_cdi::Reaction type (enumeration)
- *
+ * \param model_in An enumeration for the model.
  */
 nGray_Analytic_Odfmg_Opacity::nGray_Analytic_Odfmg_Opacity(
     const sf_double &groups, const sf_double &bands,
@@ -58,7 +55,7 @@ nGray_Analytic_Odfmg_Opacity::nGray_Analytic_Odfmg_Opacity(
 //---------------------------------------------------------------------------//
 /*!
  * \brief Unpacking constructor.
- * 
+ *
  * This constructor rebuilds and nGray_Analytic_Odfmg_Opacity from a
  * vector<char> that was created by a call to pack().  It can only rebuild
  * Analytic_Model types that have been registered in the
@@ -81,8 +78,8 @@ nGray_Analytic_Odfmg_Opacity::nGray_Analytic_Odfmg_Opacity(
 
   // unpack the number of group boundaries
   sf_double const &group_boundaries = getGroupBoundaries();
-  int ngrp_bounds = group_boundaries.size();
-  int num_groups = ngrp_bounds - 1;
+  size_t const ngrp_bounds = group_boundaries.size();
+  size_t const num_groups = ngrp_bounds - 1;
 
   // make the group boundaries and model vectors
   group_models.resize(num_groups);
@@ -117,10 +114,6 @@ nGray_Analytic_Odfmg_Opacity::nGray_Analytic_Odfmg_Opacity(
     } else if (indicator ==
                rtt_cdi_analytic::POLYNOMIAL_ANALYTIC_OPACITY_MODEL) {
       group_models[i].reset(new Polynomial_Analytic_Opacity_Model(models[i]));
-    } else if (indicator ==
-               rtt_cdi_analytic::STIMULATED_EMISSION_ANALYTIC_OPACITY_MODEL) {
-      group_models[i].reset(
-          new Stimulated_Emission_Analytic_Opacity_Model(models[i]));
     } else {
       Insist(false, "Unregistered analytic opacity model!");
     }
@@ -133,17 +126,16 @@ nGray_Analytic_Odfmg_Opacity::nGray_Analytic_Odfmg_Opacity(
 // OPACITY INTERFACE FUNCTIONS
 //---------------------------------------------------------------------------//
 /*!
- * \brief Return the group opacities given a scalar temperature and density. 
+ * \brief Return the group opacities given a scalar temperature and density.
  *
  * Given a scalar temperature and density, return the group opacities
  * (vector<double>) for the reaction type specified by the constructor.  The
  * analytic opacity model is specified in the constructor
  * (nGray_Analytic_Odfmg_Opacity()).
  *
- * \param temperature material temperature in keV
- * \param density material density in g/cm^3
+ * \param targetTemperature material temperature in keV
+ * \param targetDensity material density in g/cm^3
  * \return group opacities (coefficients) in cm^2/g
- *
  */
 std::vector<std::vector<double>>
 nGray_Analytic_Odfmg_Opacity::getOpacity(double targetTemperature,
@@ -183,9 +175,9 @@ nGray_Analytic_Odfmg_Opacity::getOpacity(double targetTemperature,
 
 //---------------------------------------------------------------------------//
 /*!
- * \brief Opacity accessor that returns a vector of multigroupband
- *     opacity 2-D vectors that correspond to the provided vector of
- *     temperatures and a single density value.
+ * \brief Opacity accessor that returns a vector of multigroupband opacity 2-D
+ *        vectors that correspond to the provided vector of temperatures and a
+ *        single density value.
  */
 std::vector<std::vector<std::vector<double>>>
 nGray_Analytic_Odfmg_Opacity::getOpacity(
@@ -201,9 +193,9 @@ nGray_Analytic_Odfmg_Opacity::getOpacity(
 
 //---------------------------------------------------------------------------//
 /*!
- * \brief Opacity accessor that returns a vector of multigroupband
- *     opacity 2-D vectors that correspond to the provided
- *     temperature and a vector of density values.
+ * \brief Opacity accessor that returns a vector of multigroupband opacity 2-D
+ *        vectors that correspond to the provided temperature and a vector of
+ *        density values.
  */
 std::vector<std::vector<std::vector<double>>>
 nGray_Analytic_Odfmg_Opacity::getOpacity(
@@ -221,9 +213,9 @@ nGray_Analytic_Odfmg_Opacity::getOpacity(
 /*!
  * \brief Pack an analytic odfmg opacity.
  *
- * This function will pack up the Analytic_Mulitgroup_Opacity into a char
- * array (represented by a vector<char>).  The nGray_Analytic_Opacity_Model
- * derived class must have a pack function; this is enforced by the virtual
+ * This function will pack up the Analytic_Mulitgroup_Opacity into a char array
+ * (represented by a vector<char>).  The nGray_Analytic_Opacity_Model derived
+ * class must have a pack function; this is enforced by the virtual
  * nGray_Analytic_Opacity_Model base class.
  */
 nGray_Analytic_Odfmg_Opacity::sf_char
@@ -247,9 +239,9 @@ nGray_Analytic_Odfmg_Opacity::pack() const {
   }
 
   // now add up the total size; number of groups + 1 size_t for number of
-  // groups, number of bands + 1 size_t for number of
-  // bands, number of models + size in each model + models, 1 size_t for
-  // reaction type, 1 size_t for model type
+  // groups, number of bands + 1 size_t for number of bands, number of models +
+  // size in each model + models, 1 size_t for reaction type, 1 size_t for model
+  // type
   size_t base_size = packed.size();
   size_t size = models.size() * sizeof(int) + num_bytes_models;
 

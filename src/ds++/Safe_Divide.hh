@@ -4,11 +4,8 @@
  * \author Mike Buksas
  * \date   Tue Jun 21 15:35:05 2005
  * \brief  Provide protected division functions.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef dsxx_Save_Divide_hh

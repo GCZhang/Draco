@@ -3,11 +3,8 @@
  * \file   parser/Expression.hh
  * \author Kent Budge
  * \brief  Definition of class Expression
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef parser_Expression_hh
@@ -15,25 +12,23 @@
 
 #include "Token_Stream.hh"
 #include "Unit.hh"
-#include "ds++/SP.hh"
 #include <map>
 #include <ostream>
 #include <utility>
 #include <vector>
 
 namespace rtt_parser {
-using std::vector;
-using std::pair;
-using std::string;
 using std::map;
 using std::ostream;
-using rtt_dsxx::SP;
+using std::pair;
+using std::string;
+using std::vector;
 
 //===========================================================================//
 /*!
  * \class Expression
  * \brief Represents a mathematical expression, typically parsed from user
- * input. 
+ * input.
  *
  * Test problems and numerical experiments often require that a problem domain
  * be initialized or driven in a way that varies in space and time.  For
@@ -47,8 +42,8 @@ using rtt_dsxx::SP;
  *
  * Expression itself is an abstract class representing all the kinds of
  * expressions that might be specified.  Concrete classes based on Expression
- * include Constant_Expression, Variable_Expression, Product_Expression, and
- * so forth.
+ * include Constant_Expression, Variable_Expression, Product_Expression, and so
+ * forth.
  *
  * Expression provides the means to check unit compatibility. This is kept
  * distinct from evaluation to keep the cost of evaluation down. Doing so
@@ -56,13 +51,13 @@ using rtt_dsxx::SP;
  * naturally we choose SI.
  *
  * Expressions are evaluated for an arbitrary set of variables. These are
- * specified when the Expression is parsed using a map from variable name (as
- * a std::string) to variable index and units. The map can specify any number
- * of variables. 
+ * specified when the Expression is parsed using a map from variable name (as a
+ * std::string) to variable index and units. The map can specify any number of
+ * variables.
  */
 //===========================================================================//
 
-class DLL_PUBLIC_parser Expression {
+class Expression {
 public:
   enum Precedence {
     COMMA_PRECEDENCE,
@@ -81,8 +76,8 @@ public:
 
     PRODUCT_PRECEDENCE,
     QUOTIENT_PRECEDENCE, // = PRODUCT_PRECEDENCE,
-    // Quotient must have higher precedence to handle products in
-    // denominator right.
+    // Quotient must have higher precedence to handle products in denominator
+    // right.
 
     NOT_PRECEDENCE,
     NEGATE_PRECEDENCE = NOT_PRECEDENCE,
@@ -105,9 +100,9 @@ public:
   unsigned number_of_variables() const { return number_of_variables_; }
 
   /*! Return the dimensions of the expression.
-     *
-     * The conversion factor <code> units().conv </code> is not significant.
-     */
+   *
+   * The conversion factor <code> units().conv </code> is not significant.
+   */
   Unit units() const { return units_; }
 
   // SERVICES
@@ -136,12 +131,12 @@ public:
   // STATIC
 
   //! Parse an Expression from a Token_Stream.
-  static SP<Expression>
+  static std::shared_ptr<Expression>
   parse(unsigned number_of_variables,
         map<string, pair<unsigned, Unit>> const &variables, Token_Stream &);
 
   //! Parse an Expression with specified dimensions from a Token_Stream.
-  static SP<Expression>
+  static std::shared_ptr<Expression>
   parse(unsigned number_of_variables,
         map<string, pair<unsigned, Unit>> const &variables,
         Unit const &expected_units, string const &expected_units_text,
@@ -150,21 +145,18 @@ public:
 protected:
   // IMPLEMENTATION
 
-  /*! Create an Expression.
-     *
-     * \param number_of_variables Number of distinct variables in the
-     * Expression.
-     *
-     * \param units Dimensions of the expression..
-     */
+  /*!
+   * \brief Create an Expression.
+   * \param number_of_variables Number of distinct variables in the Expression.
+   * \param units Dimensions of the expression..
+   */
   Expression(unsigned const number_of_variables, Unit const &units)
       : number_of_variables_(number_of_variables), units_(units) {}
 
   //! allow child classes access to Expression::evaluate
-  static double evaluate_def_(SP<Expression const> const &e,
+  static double evaluate_def_(std::shared_ptr<Expression const> const &e,
                               double const *const x) {
-    Require(e != SP<Expression>());
-
+    Require(e != std::shared_ptr<Expression>());
     return e->evaluate_(x);
   }
 
@@ -186,9 +178,10 @@ private:
   //! Number of distinct independent variables in the Expression.
   unsigned number_of_variables_;
 
-  //! Dimensions of the expression. The value of units_.conv is not
-  //! significant except for constant Expressions, where it represents the
-  //! value of the constant.
+  /*! \brief Dimensions of the expression. The value of units_.conv is not
+   *         significant except for constant Expressions, where it represents
+   *         the value of the constant.
+   */
   Unit units_;
 };
 

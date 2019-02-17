@@ -4,11 +4,8 @@
  * \author Kelly Thompson
  * \date   Thu Jun 22 16:22:06 2000
  * \brief  CDI class header file.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef rtt_cdi_CDI_hh
@@ -18,16 +15,17 @@
 #include "GrayOpacity.hh"
 #include "MultigroupOpacity.hh"
 #include "OdfmgOpacity.hh"
-#include "ds++/SP.hh"
 #include "ds++/Soft_Equivalence.hh"
 #include <algorithm>
+#include <limits>
+#include <memory>
 
 //---------------------------------------------------------------------------//
 // UNNAMED NAMESPACE
 //---------------------------------------------------------------------------//
-// Nested unnamed namespace that holds data and services used by the
-// Planckian integration routines.  The data in this namespace is accessible
-// by the methods in this file only (internal linkage).
+// Nested unnamed namespace that holds data and services used by the Planckian
+// integration routines.  The data in this namespace is accessible by the
+// methods in this file only (internal linkage).
 
 namespace {
 
@@ -54,26 +52,29 @@ static double const NORM_FACTOR = 0.25 * coeff; // 15/(4*pi^4);
  * expansion.
  *
  * The taylor expansion of the planckian integral looks as follows:
+ *
  * \code
  * I(x) = c0 ( c3 x^3 + c4 x^4 + c5 x^5 + c7 x^7 + c9 x^9 + c11 x^11 + c13 x^13 +
  *           c15 x^15 + c17 x^17 + c19 x^19 + c21 x^21 )
  * \endcode
+ *
  * If done naively, this requires 136 multiplications. If you accumulate
  * the powers of \f$ x \f$ as you go, it can be done with 24 multiplications.
  *
  * If you express the polynomaial as follows:
+ *
  * \code
  * I(x) = c0 x^3 ( c3 + x ( c4 + x (c5 + x^2 ( c7 + x^2 ( c9 + x^2 ( c11 + x^2
  * ( c13 + x^2 ( c15 + x^2 ( c17 + x^2 ( c19 + x^2 c21 ) ) ) ) ) ) ) ) ) )
  * \endcode
+ *
  * the evaluation can be done with 13 multiplications. Furthermore, we do not
  * need to worry about overflow on large powers of \f$ x \f$, since the
  * largest power we compute is \f$ x^3 \f$.
  *
- * \param  The point at which the Planck integral is evaluated.
+ * \param[in] x The point at which the Planck integral is evaluated.
  * \return The integral value.
  */
-
 static inline double taylor_series_planck(double x) {
   Require(x >= 0.0);
 
@@ -122,6 +123,7 @@ static inline double taylor_series_planck(double x) {
 static double polylog_series_minus_one_planck(double const x,
                                               double const eix) {
   Require(x >= 0.0);
+  Require(x < std::sqrt(std::numeric_limits<double>::max()));
   Require(rtt_dsxx::soft_equiv(std::exp(-x), eix));
 
   double const xsqrd = x * x;
@@ -193,19 +195,47 @@ static double polylog_series_minus_one_planck(double const x,
   return poly;
 }
 
+//---------------------------------------------------------------------------//
+/*!
+ * \brief Compute the difference between an integrated Planck and Rosseland
+ * curves over \f$ (0,\nu) \f$.
+ *
+ * This helper function is used by CDI::integrate_planck_rosseland
+ * (also in this file).
+ *
+ * ==> The underlying function x^4/(exp(x) - 1) can be difficult to evaluate
+ *     with double precision when x is very small. Instead, when x < 1.e-5,
+ *     we use the first 2 terms in the expansion x^4/(exp(x) - 1) ~ x^3(1-x/2),
+ *     remaining terms are x^5/12 + O(x^7).
+ * ==> When x is large, e^x reaches floating point overflow rapidly, thus the
+ *     the function is modified to the form exp(-x)*x^4/(1-exp(-x)). Accuracy of
+ *     1-exp(-x) suffers when x is large. However, std::expm1 should improve
+ *     the accuracy of that evaluation.
+ * ==> The large x fix might be able to be changed in the future if bug listed
+ *     in man page is corrected.
+ *
+ * \param[in] freq The frequency for the upper limit of the integrand.
+ * \param[in] exp_freq exp(-freq)
+ * \return The difference between the integrated Planck and Rosseland
+ *         curves over \f$ (0,\nu) \f$.
+ */
 static double Planck2Rosseland(double const freq, double const exp_freq) {
-  Check(rtt_dsxx::soft_equiv(exp_freq, std::exp(-freq)));
+  Require(freq >= 0.0);
+  Require(rtt_dsxx::soft_equiv(exp_freq, std::exp(-freq)));
+
+  // Case 1: if nu/T is sufficiently large, then the evaluation is 0.0.
+  //         this evaluation also prevents overflow when evaluating (nu/T)^4.
+  if (freq > std::pow(std::numeric_limits<decltype(freq)>::max(), 1.0 / 4.0))
+    return 0.0;
 
   double const freq_3 = freq * freq * freq;
 
-  double factor;
+  // Case 2: if nu/T < 1.0e-5, evaluate via Taylor expansion.
+  if (freq < 1.0e-5)
+    return NORM_FACTOR * freq_3 * (1.0 - 0.5 * freq);
 
-  if (freq > 1.0e-5)
-    factor = NORM_FACTOR * exp_freq * (freq_3 * freq) / (1 - exp_freq);
-  else
-    factor = NORM_FACTOR * freq_3 / (1 - 0.5 * freq);
-
-  return factor;
+  // Case 3: All other cases
+  return NORM_FACTOR * exp_freq * freq_3 * freq / -std::expm1(-freq);
 }
 
 } // end of unnamed namespace
@@ -355,8 +385,6 @@ namespace rtt_cdi {
  * (above 2.822 T), we skip the Taylor series calculations and use the
  * polylogarithmic series minus one (the minus one is for roundoff control).
  *
- *
- *
  * This Rosseland functions integrate the normalized Rosseland that is defined:
  * \f[
  *    r(x) = \frac{15}{4\pi^4} \frac{x^4 e^x}{(e^x - 1)^2}
@@ -421,9 +449,9 @@ namespace rtt_cdi {
  * \example cdi/test/tCDI.cc
  *
  * This test code provides an example of how to use CDI to access an user
- * defined opacity class.  We have created an opacity class called
- * dummyOpacity that is used in the creation of a CDI object.  The CDI object
- * is then used to obtain obacity data (via dummyOpacity).
+ * defined opacity class.  We have created an opacity class called dummyOpacity
+ * that is used in the creation of a CDI object.  The CDI object is then used to
+ * obtain obacity data (via dummyOpacity).
  *
  * The test code also provides a mechanism to test the CDI independent of any
  * "real" data objects.
@@ -432,10 +460,10 @@ namespace rtt_cdi {
 
 class DLL_PUBLIC_cdi CDI {
   // NESTED CLASSES AND TYPEDEFS
-  typedef rtt_dsxx::SP<const GrayOpacity> SP_GrayOpacity;
-  typedef rtt_dsxx::SP<const MultigroupOpacity> SP_MultigroupOpacity;
-  typedef rtt_dsxx::SP<const OdfmgOpacity> SP_OdfmgOpacity;
-  typedef rtt_dsxx::SP<const EoS> SP_EoS;
+  typedef std::shared_ptr<const GrayOpacity> SP_GrayOpacity;
+  typedef std::shared_ptr<const MultigroupOpacity> SP_MultigroupOpacity;
+  typedef std::shared_ptr<const OdfmgOpacity> SP_OdfmgOpacity;
+  typedef std::shared_ptr<const EoS> SP_EoS;
   typedef std::vector<SP_GrayOpacity> SF_GrayOpacity;
   typedef std::vector<SF_GrayOpacity> VF_GrayOpacity;
   typedef std::vector<SP_MultigroupOpacity> SF_MultigroupOpacity;
@@ -447,65 +475,59 @@ class DLL_PUBLIC_cdi CDI {
   // DATA
 
   /*!
-     * \brief Array that stores the matrix of possible GrayOpacity types.
-     *
-     * gray_opacities contains smart pointers that links a CDI object to a
-     * GrayOpacity object (any type of gray opacity - Gandolf, EOSPAC,
-     * Analytic, etc.).  The smart pointers is entered in the set functions.
-     *
-     * grayOpacities is indexed [0,num_Models-1][0,num_Reactions-1].  It is
-     * accessed by [rtt_cdi::Model][rtt_cdi::Reaction]
-     *
-     */
+   * \brief Array that stores the matrix of possible GrayOpacity types.
+   *
+   * gray_opacities contains smart pointers that links a CDI object to a
+   * GrayOpacity object (any type of gray opacity - Gandolf, EOSPAC, Analytic,
+   * etc.).  The smart pointers is entered in the set functions.
+   *
+   * grayOpacities is indexed [0,num_Models-1][0,num_Reactions-1].  It is
+   * accessed by [rtt_cdi::Model][rtt_cdi::Reaction]
+   */
   VF_GrayOpacity grayOpacities;
 
   /*!
-     * \brief Array that stores the list of possible MultigroupOpacity types.
-     *
-     * multigroupOpacities contains a list of smart pointers to
-     * MultigroupOpacity objects for different rtt_cdi::Reaction types.  It
-     * is indexed [0,num_Models-1][0,num_Reactions-1].  It is accessed by
-     * [rtt_cdi::Model][rtt_cdi::Reaction].
-     */
+   * \brief Array that stores the list of possible MultigroupOpacity types.
+   *
+   * multigroupOpacities contains a list of smart pointers to MultigroupOpacity
+   * objects for different rtt_cdi::Reaction types.  It is indexed
+   * [0,num_Models-1][0,num_Reactions-1].  It is accessed by
+   * [rtt_cdi::Model][rtt_cdi::Reaction].
+   */
   VF_MultigroupOpacity multigroupOpacities;
 
-  /*!
-     * \brief Array that stores the list of possible OdfmgOpacity types.
-     *
-     */
+  //! Array that stores the list of possible OdfmgOpacity types.
   VF_OdfmgOpacity odfmgOpacities;
 
   /*!
-     * \brief Frequency group boundaries for multigroup data.
-     *
-     * This is a static vector that contains the frequency boundaries for
-     * multigroup data sets.  The number of frequency (energy) groups is the
-     * size of the vector minus one.
-     *
-     * This data is stored as static so that the same structure is guaranteed
-     * for all multigroup data sets.  Thus, each CDI object will have access
-     * to the same energy group structure.
-     *
-     */
+   * \brief Frequency group boundaries for multigroup data.
+   *
+   * This is a static vector that contains the frequency boundaries for
+   * multigroup data sets.  The number of frequency (energy) groups is the size
+   * of the vector minus one.
+   *
+   * This data is stored as static so that the same structure is guaranteed for
+   * all multigroup data sets.  Thus, each CDI object will have access to the
+   * same energy group structure.
+   */
   static std::vector<double> frequencyGroupBoundaries;
 
   /*!
-     * \brief Band boundaries for odf multigroup data.
-     *
-     * This data is stored as static so that the same structure is guaranteed
-     * for all multigroup odf data sets.  Thus, each CDI object will have access
-     * to the same opacity band structure.
-     *
-     */
+   * \brief Band boundaries for odf multigroup data.
+   *
+   * This data is stored as static so that the same structure is guaranteed
+   * for all multigroup odf data sets.  Thus, each CDI object will have access
+   * to the same opacity band structure.
+   */
   static std::vector<double> opacityCdfBandBoundaries;
 
   /*!
-     * \brief Smart pointer to the equation of state object.
-     *
-     * spEoS is a smart pointer that links a CDI object to an equation of
-     * state object (any type of EoS - EOSPAC, Analytic, etc.).  The pointer
-     * is established in the CDI constructor.
-     */
+   * \brief Smart pointer to the equation of state object.
+   *
+   * spEoS is a smart pointer that links a CDI object to an equation of state
+   * object (any type of EoS - EOSPAC, Analytic, etc.).  The pointer is
+   * established in the CDI constructor.
+   */
   SP_EoS spEoS;
 
   //! Material ID.
@@ -517,6 +539,7 @@ class DLL_PUBLIC_cdi CDI {
   //! Integrate the normalized Planckian from 0 to x (hnu/kT).
   inline static double integrate_planck(double const scaled_frequency);
 
+  //! Integrate the normalized Planckian from 0 to x (hnu/kT).
   inline static double integrate_planck(double const scaled_frequency,
                                         double const exp_scaled_freqeuency);
 
@@ -567,7 +590,18 @@ public:
                                     std::vector<double> const &planckSpectrum,
                                     std::vector<double> &emission_group_cdf);
 
-  //! Collapse Multigroup data to single-interval reciprocal data with Planck weighting.
+  //! Collapse Multigroup data to single-interval data with Planck weighting
+  // (without setting the emission CDF)
+  static double
+  collapseMultigroupOpacitiesPlanck(std::vector<double> const &groupBounds,
+                                    // double              const & T,
+                                    std::vector<double> const &opacity,
+                                    std::vector<double> const &planckSpectrum);
+
+  /*!
+   * \brief Collapse Multigroup data to single-interval reciprocal data with
+   *        Planck weighting.
+   */
   static double collapseMultigroupReciprocalOpacitiesPlanck(
       std::vector<double> const &groupBounds,
       std::vector<double> const &opacity,
@@ -625,16 +659,16 @@ public:
   // -----------------------
 
   //! Integrate the normalized Planckian over a frequency range.
-  static double integratePlanckSpectrum(double const lowf, double const hif,
+  static double integratePlanckSpectrum(double const low, double const high,
                                         double const T);
 
   //! Integrate the normalized Rosseland over a frequency range.
-  static double integrateRosselandSpectrum(double const lowf, double const hif,
+  static double integrateRosselandSpectrum(double const low, double const high,
                                            double const T);
 
   //! Integrate the Planckian and Rosseland over a frequency range.
-  static void integrate_Rosseland_Planckian_Spectrum(double const lowf,
-                                                     double const hif,
+  static void integrate_Rosseland_Planckian_Spectrum(double const low,
+                                                     double const high,
                                                      double const T,
                                                      double &planck,
                                                      double &rosseland);
@@ -670,6 +704,11 @@ public:
                                            double const T,
                                            std::vector<double> &planck);
 
+  //! Integrate the Planckian over all frequency groups and return vector
+  static std::vector<double>
+  integrate_Planckian_Spectrum(std::vector<double> const &bounds,
+                               double const T);
+
   //! Integrate the Rosseland over all frequency groups
   static void integrate_Rosseland_Spectrum(std::vector<double> const &bounds,
                                            double const T,
@@ -702,23 +741,39 @@ double CDI::integrate_planck(double const scaled_freq) {
 //---------------------------------------------------------------------------//
 /**
  * \brief Integrate the normalized Planckian spectrum from 0 to \f$ x
- * (\frac{h\nu}{kT}) \f$.
+ *        (\frac{h\nu}{kT}) \f$.
  *
  * \param scaled_freq upper integration limit, scaled by the temperature.
- *
+ * \param exp_scaled_freq upper integration limit, scaled by an exponential
+ *           function.
  * \return integrated normalized Plankian from 0 to x \f$(\frac{h\nu}{kT})\f$
  *
+ * There are 3 cases to consider:
+ * 1. nu/T is very large
+ *    If nu/T is large enough, then the integral will be 1.0.
+ * 2. nu/T is small
+ *    Represent the integral via Taylor series exapansion (this will be
+ *    more efficient than case 3).
+ * 3. All other cases. Use the polylog algorithm.
  */
 double CDI::integrate_planck(double const scaled_freq,
                              double const exp_scaled_freq) {
+  Require(scaled_freq >= 0);
+
+  // Case 1: nu/T very large -> integral == 1.0
+  if (scaled_freq > std::sqrt(std::numeric_limits<double>::max()))
+    return 1.0;
+
+  // Case 2: nu/T is sufficiently small
+  // FWIW the break is at about scaled_freq < 2.06192398071289
+  double const taylor = taylor_series_planck(std::min(scaled_freq, 1.0e15));
+  // Case 3: all other situations
   double const poly =
       polylog_series_minus_one_planck(scaled_freq, exp_scaled_freq) + 1.0;
-  double const taylor = taylor_series_planck(std::min(scaled_freq, 1.0e15));
-  // Truncated argument to avoid overlow with IEEE standard double
-  // precision. At values this large, the next line will always select the
-  // polylog value.
-  double integral = std::min(taylor, poly);
-  // FWIW the break is at about scaled_freq == 2.06192398071289
+
+  // Choose between 2&3: For large enough nu/T, the next line will always
+  // select the polylog value.
+  double const integral = std::min(taylor, poly);
 
   Ensure(integral >= 0.0);
   Ensure(integral <= 1.0);
@@ -726,10 +781,12 @@ double CDI::integrate_planck(double const scaled_freq,
 }
 
 //---------------------------------------------------------------------------//
-/*! \brief Integrate the normalized Planckian and Rosseland spectrums from 0 to \f$ x
- * (\frac{h\nu}{kT}) \f$.
+/*! \brief Integrate the normalized Planckian and Rosseland spectrums from 0 to
+ *         \f$ x (\frac{h\nu}{kT}) \f$.
  *
  * \param scaled_freq frequency upper integration limit scaled by temperature
+ * \param exp_scaled_freq upper integration limit, scaled by an exponential
+ *           function.
  * \param planck Variable to return the Planck integral
  * \param rosseland Variable to return the Rosseland integral
  */
@@ -740,7 +797,7 @@ void CDI::integrate_planck_rosseland(double const scaled_freq,
   Require(rtt_dsxx::soft_equiv(exp_scaled_freq, std::exp(-scaled_freq)));
 
   // Calculate the Planckian integral
-  planck = integrate_planck(scaled_freq);
+  planck = integrate_planck(scaled_freq, exp_scaled_freq);
 
   Require(planck >= 0.0);
   Require(planck <= 1.0);

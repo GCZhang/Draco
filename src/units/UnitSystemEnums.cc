@@ -4,18 +4,14 @@
  *  \brief  This file contains enums, conversion factors and labels that help
  *          define a UnitSystem. 
  *  \date   Mon Nov 03 20:54:05 2003
- *  \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *          All rights reserved.
- */
+ *  \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *          All rights reserved. */
 //---------------------------------------------------------------------------//
-// $Id$
-//---------------------------------------------------------------------------//
-
-#include <string>
-#include <vector>
 
 #include "UnitSystemEnums.hh"
 #include "ds++/Assert.hh"
+#include <string>
+#include <vector>
 
 namespace rtt_units {
 
@@ -29,10 +25,10 @@ namespace rtt_units {
  * The unit labels are stored in UnitSystemEnum.hh as a std::string.  Each
  * label is dilemited with a comma.
  *
- * \param pos   Provide the enum value for the current unit.  pos is the
- * integer equivalent of the enum value.
- * \param label The string that contains all of the label names.  Each name
- * dilemited with a comma.
+ * \param[in] pos Provide the enum value for the current unit.  pos is the
+ *              integer equivalent of the enum value.
+ * \param[in] labels The string that contains all of the label names.  Each
+ *              name dilemited with a comma.
  * \return A std::string that contains only one label
  */
 std::string setUnitLabel(size_t const pos, std::string const &labels) {

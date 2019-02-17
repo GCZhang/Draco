@@ -3,11 +3,11 @@
  * \file   Token_Equivalence.hh
  * \author Kelly G. Thompson
  * \brief  Provide services for ApplicationUnitTest framework.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
  *         All rights reserved.
  */
 //---------------------------------------------------------------------------//
-// $Id$
+
 //---------------------------------------------------------------------------//
 
 #ifndef rtt_Token_Equivalence_hh

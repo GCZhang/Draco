@@ -4,18 +4,14 @@
   \author lowrie
   \date   2002-04-12
   \brief  Header for Plot2D.
-  \note   Copyright (C) 2016 Los Alamos National Security, LLC.
-          All rights reserved.
-*/
-//---------------------------------------------------------------------------//
-// $Id$
+  \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+          All rights reserved.*/
 //---------------------------------------------------------------------------//
 
-#ifndef INCLUDED_plot2D_Plot2D_hh
-#define INCLUDED_plot2D_Plot2D_hh
+#ifndef rtt_plot2D_Plot2D_hh
+#define rtt_plot2D_Plot2D_hh
 
 #include "SetProps.hh"
-#include "ds++/SP.hh"
 #include <vector>
 
 namespace rtt_plot2D {
@@ -233,7 +229,7 @@ private:
 
 } // namespace rtt_plot2D
 
-#endif // INCLUDED_plot2D_Plot2D_hh
+#endif // rtt_plot2D_Plot2D_hh
 
 //---------------------------------------------------------------------------//
 // end of plot2D/Plot2D.hh

@@ -3,12 +3,9 @@
  * \file   device/GPU_Device.cc
  * \author Kelly (KT) Thompson
  * \date   Thu Oct 20 15:28:48 2011
- * \brief  
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \brief
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "GPU_Device.hh"
@@ -27,10 +24,8 @@ namespace rtt_device {
  * - Set device and context handles.
  * - Query the devices for features.
  */
-GPU_Device::GPU_Device(void) // int /*argc*/, char */*argv*/[] )
-    : deviceCount(0),
-      computeCapability(),
-      deviceName() {
+GPU_Device::GPU_Device(void)
+    : deviceCount(0), computeCapability(), deviceName() {
   // Initialize the library
   cudaError_enum err = cuInit(0); // currently must be 0.
   checkForCudaError(err);
@@ -51,7 +46,10 @@ GPU_Device::GPU_Device(void) // int /*argc*/, char */*argv*/[] )
     // Compute capability revision
     int major = 0;
     int minor = 0;
-    cuDeviceComputeCapability(&major, &minor, cuDevice);
+    cuDeviceGetAttribute(&major, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR,
+                         cuDevice);
+    cuDeviceGetAttribute(&minor, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR,
+                         cuDevice);
     computeCapability[device].push_back(major);
     computeCapability[device].push_back(minor);
 
@@ -62,10 +60,75 @@ GPU_Device::GPU_Device(void) // int /*argc*/, char */*argv*/[] )
     deviceName.push_back(std::string(name));
 
     // Query and archive device properties.
-    CUdevprop_st properties;
-    err = cuDeviceGetProperties(&properties, cuDevice);
-    checkForCudaError(err);
-    deviceProperties.push_back(properties);
+    {
+      int tmp1(0), tmp2(0), tmp3(0);
+      err = cuDeviceGetAttribute(
+          &tmp1, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, cuDevice);
+      checkForCudaError(err);
+      m_maxthreadsperblock.push_back(tmp1);
+
+      err = cuDeviceGetAttribute(&tmp1, CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X,
+                                 cuDevice);
+      checkForCudaError(err);
+      err = cuDeviceGetAttribute(&tmp2, CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Y,
+                                 cuDevice);
+      checkForCudaError(err);
+      err = cuDeviceGetAttribute(&tmp3, CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Z,
+                                 cuDevice);
+      checkForCudaError(err);
+      m_maxthreadsdim.push_back(std::array<int, 3>{tmp1, tmp2, tmp3});
+
+      err = cuDeviceGetAttribute(&tmp1, CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_X,
+                                 cuDevice);
+      checkForCudaError(err);
+      err = cuDeviceGetAttribute(&tmp2, CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Y,
+                                 cuDevice);
+      checkForCudaError(err);
+      err = cuDeviceGetAttribute(&tmp3, CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Z,
+                                 cuDevice);
+      checkForCudaError(err);
+      m_maxgridsize.push_back(std::array<int, 3>{tmp1, tmp2, tmp3});
+
+      err = cuDeviceGetAttribute(
+          &tmp1, CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK, cuDevice);
+      checkForCudaError(err);
+      m_sharedmemperblock.push_back(tmp1);
+
+      err = cuDeviceGetAttribute(
+          &tmp1, CU_DEVICE_ATTRIBUTE_TOTAL_CONSTANT_MEMORY, cuDevice);
+      checkForCudaError(err);
+      m_totalconstantmemory.push_back(tmp1);
+
+      err =
+          cuDeviceGetAttribute(&tmp1, CU_DEVICE_ATTRIBUTE_WARP_SIZE, cuDevice);
+      checkForCudaError(err);
+      m_simdwidth.push_back(tmp1);
+
+      err =
+          cuDeviceGetAttribute(&tmp1, CU_DEVICE_ATTRIBUTE_MAX_PITCH, cuDevice);
+      checkForCudaError(err);
+      m_mempitch.push_back(tmp1);
+
+      err = cuDeviceGetAttribute(
+          &tmp1, CU_DEVICE_ATTRIBUTE_MAX_REGISTERS_PER_BLOCK, cuDevice);
+      checkForCudaError(err);
+      m_regsperblock.push_back(tmp1);
+
+      err =
+          cuDeviceGetAttribute(&tmp1, CU_DEVICE_ATTRIBUTE_CLOCK_RATE, cuDevice);
+      checkForCudaError(err);
+      m_clockrate.push_back(tmp1);
+
+      err = cuDeviceGetAttribute(&tmp1, CU_DEVICE_ATTRIBUTE_TEXTURE_ALIGNMENT,
+                                 cuDevice);
+      checkForCudaError(err);
+      m_texturealign.push_back(tmp1);
+    }
+
+    // CUdevprop_st properties;
+    // err = cuDeviceGetProperties(&properties, cuDevice);
+    // checkForCudaError(err);
+    // deviceProperties.push_back(properties);
   }
 
   // Save the handle and context for each device
@@ -131,29 +194,36 @@ void GPU_Device::printDeviceSummary(int const idevice,
   return;
 }
 
+#ifdef DBC
 //---------------------------------------------------------------------------//
-/*! 
+/*!
  * \brief Convert a CUDA return enum value into a descriptive string.
- * 
+ *
  * \param errorCode CUDA enum return value
  * \return descriptive string associated with
  *
  * For optimized builds with DRACO_DBC_LEVEL=0, this function will be empty
  * and any decent compiler will optimize this call away.
  */
-#ifdef DBC
-void GPU_Device::checkForCudaError(cudaError_enum const err) {
+void GPU_Device::checkForCudaError(cudaError_enum const errorCode) {
   std::ostringstream msg;
-  msg << "A CUDA call returned the error: \"" << getErrorMessage(err) << "\"";
-  Insist(err == CUDA_SUCCESS, msg.str());
+  msg << "A CUDA call returned the error: \"" << getErrorMessage(errorCode)
+      << "\"";
+  Insist(errorCode == CUDA_SUCCESS, msg.str());
 }
+
 #else
+//---------------------------------------------------------------------------//
+/*!
+ * \brief Convert a CUDA return enum value into a descriptive string.
+ * \return descriptive string associated with
+ */
 void GPU_Device::checkForCudaError(cudaError_enum const) { /* empty */
 }
 #endif
 
 //---------------------------------------------------------------------------//
-/*! 
+/*!
  * \brief Return a text string that corresponds to a CUDA error enum.
  */
 std::string GPU_Device::getErrorMessage(cudaError_enum const err) {
@@ -266,9 +336,9 @@ std::string GPU_Device::getErrorMessage(cudaError_enum const err) {
 }
 
 //---------------------------------------------------------------------------//
-/*! 
+/*!
  * \brief Wrap the cuMemAlloc funtion to include error checking
- * 
+ *
  * \param nbytes number of bytes to allocate (e.g.: len*sizeof(double) ).
  * \return GPU device pointer to allocated memory.
  */

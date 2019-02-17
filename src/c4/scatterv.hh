@@ -4,14 +4,12 @@
  * \author Thomas M. Evans
  * \date   Thu Mar 21 11:42:03 2002
  * \brief  Data scatterv functions
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
  *         All rights reserved.
  *
  * This file contains the declarations for determinate and indeterminate
  * variable length scatter functions.
  */
-//---------------------------------------------------------------------------//
-// $Id$
 //---------------------------------------------------------------------------//
 
 #ifndef c4_scatterv_hh
@@ -30,13 +28,12 @@ namespace rtt_c4 {
  * message are known in advance.
  *
  * \param outgoing_data Data to be sent from root processor. Ignored on any
- * processor but the root processor.
- *
+ *          processor but the root processor.
  * \param incoming_data On entry, the size of each subarray must be set to the
- * expected size of the incoming message. On return, contains the scattered
- * data.
+ *          expected size of the incoming message. On return, contains the
+ *          scattered data.
  */
-template <class T>
+template <typename T>
 DLL_PUBLIC_c4 void
 determinate_scatterv(std::vector<std::vector<T>> &outgoing_data,
                      std::vector<T> &incoming_data);
@@ -49,11 +46,10 @@ determinate_scatterv(std::vector<std::vector<T>> &outgoing_data,
  * message are not known in advance.
  *
  * \param outgoing_data Data to be sent from root processor. Ignored on all
- * other processors.
- *
+ *          other processors.
  * \param incoming_data On return, contains the scattered data.
  */
-template <class T>
+template <typename T>
 DLL_PUBLIC_c4 void
 indeterminate_scatterv(std::vector<std::vector<T>> &outgoing_data,
                        std::vector<T> &incoming_data);

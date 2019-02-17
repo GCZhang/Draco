@@ -11,9 +11,6 @@ fi
 ## ENVIRONMENTS
 ##---------------------------------------------------------------------------##
 
-# unlimit stack and core dump sizes.
-ulimit -s unlimited
-
 # Where is the vendor directory
 if [[ ! ${VENDOR_DIR} ]]; then
    if test -d /usr/projects/draco/vendors; then
@@ -52,17 +49,15 @@ else
     module load user_contrib
   fi
   module load friendly-testing
+  module use --append ${VENDOR_DIR}-ec/modulefiles
 
-  export dracomodules="intel/16.0.3 openmpi/1.10.3 mkl trilinos/12.8.1 \
-superlu-dist/4.3 metis/5.1.0 parmetis/4.0.3 ndi random123 eospac/6.2.4 \
-subversion cmake/3.6.2 numdiff git totalview emacs grace"
+  export dracomodules="clang-format/3.9.0 intel/18.0.2 openmpi/2.1.2 mkl \
+trilinos superlu-dist/5.1.3 metis parmetis random123 eospac/6.3.0 subversion \
+cmake/3.12.1 numdiff git totalview emacs grace"
 
-  # module hsi only available on yellow toss22 and rfta
-  target="`uname -n | sed -e s/[.].*//`"
-  case ${target} in
-    ml* | pi* | wf* )
-      dracomodules="$dracomodules hsi"
-  esac
+if [[ `groups | grep -c ccsrad` != 0 ]]; then
+  draco_modules="$draco_modules csk ndi"
+fi
 
 fi
 

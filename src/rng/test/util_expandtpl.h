@@ -37,19 +37,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * being the number of rounds.
  */
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#if (DBS_GNUC_VERSION >= 70000)
+#pragma GCC diagnostic ignored "-Wexpansion-to-defined"
+#endif
+#endif
+
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wexpansion-to-defined"
 #endif
 
-#if TRY_OTHER
+#ifdef _MSC_FULL_VER
+// conditional expression is constant
+#pragma warning(push)
+#pragma warning(disable : 4127)
+#endif
+
+#if defined(TRY_OTHER)
 TEST_TPL(mrg, 1, 32, 1)
 TEST_TPL(mt, 1, 32, 1)
 TEST_TPL(mtsmall, 1, 32, 1)
 TEST_TPL(cmrg, 1, 32, 1)
 TEST_TPL(xorwow, 1, 32, 1)
 #endif
-#if TRY_PHILOX2X32
+#if defined(TRY_PHILOX2X32)
 TEST_TPL(philox, 2, 32, 7)
 TEST_TPL(philox, 2, 32, 10)
 #endif
@@ -75,9 +89,19 @@ TEST_TPL(ars, 4, 32, 7)
 TEST_TPL(aesni, 4, 32, 10)
 #endif
 
+#ifdef _MSC_FULL_VER
+// conditional expression is constant
+#pragma warning(pop)
+#endif
+
 #ifdef __clang__
 // Restore clang diagnostics to previous state.
 #pragma clang diagnostic pop
+#endif
+
+#ifdef __GNUC__
+// Restore GCC diagnostics to previous state.
+#pragma GCC diagnostic pop
 #endif
 
 #undef TEST_TPL

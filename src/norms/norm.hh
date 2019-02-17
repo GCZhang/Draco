@@ -4,21 +4,30 @@
  * \author Kent Budge
  * \date   Tue Sep 18 08:53:41 2007
  * \brief  Declare template class norm
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
  *         All rights reserved.
  */
 //---------------------------------------------------------------------------//
-// $Id$
+
 //---------------------------------------------------------------------------//
 
 #ifndef norms_norm_hh
 #define norms_norm_hh
 
+#include "ds++/DracoMath.hh"
+
 namespace rtt_norms {
 
 //---------------------------------------------------------------------------//
 //! Compute the norm of a scalar.
-template <class Field> double norm(Field const &x) { return x * x; }
+template <typename Field> double norm(Field const &x) { return x * x; }
+
+//---------------------------------------------------------------------------//
+//! Compute the norm of the difference of two scalars.
+template <typename Field1, typename Field2>
+double norm_diff(Field1 const &x, Field2 const &y) {
+  return rtt_dsxx::square(x - y);
+}
 
 } // end namespace rtt_norms
 

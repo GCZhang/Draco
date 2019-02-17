@@ -23,14 +23,14 @@ function version_gt()
 }
 
 CLANG_FORMAT=`which clang-format`
-if ! test -x $CLANG_FORMAT; then
+if ! test -x "$CLANG_FORMAT"; then
   exit 0
 fi
 
-cf_min_ver=3.8
-cf_ver=`$CLANG_FORMAT --version`
+cf_min_ver=6.0
+cf_ver=`"$CLANG_FORMAT" --version`
 if version_gt $cf_ver_min $cf_min; then
-  echo "ERROR: Your version of clang-format is too old. Expecting v 3.8+."
+  echo "ERROR: Your version of clang-format is too old. Expecting v 6.0+."
   echo "       pre-commit-hook disabled."
   exit 0
 fi
@@ -57,7 +57,10 @@ PARSE_EXTS=true
 
 # file types to parse. Only effective when PARSE_EXTS is true.
 # FILE_EXTS=".c .h .cpp .hpp"
-FILE_EXTS=".c .h .cpp .hpp .cc .hh .cxx"
+FILE_EXTS=".c .h .cpp .hpp .cc .hh .cxx .cu"
+
+# file endings for files to exclude from parsing when PARSE_EXTS is true.
+FILE_ENDINGS="_f.h _f77.h _f90.h"
 
 ##################################################################
 # There should be no need to change anything below this line.
@@ -100,7 +103,10 @@ set -e
 matches_extension() {
     local filename=$(basename "$1")
     local extension=".${filename##*.}"
+    local end
     local ext
+
+    for end in $FILE_ENDINGS; do [[ "$filename" == *"$end" ]] && return 1; done
 
     for ext in $FILE_EXTS; do [[ "$ext" == "$extension" ]] && return 0; done
 
@@ -163,9 +169,14 @@ fi
 # print the diffs and reject the commit.
 if test $auto_apply = true; then
   git apply "$patch"
-  printf "Files in this commit were updated to comply with the clang-format rules.\n"
+  printf "\nFiles in this commit were updated to comply with the clang-format rules.\n"
+  printf "You must check and test these changes and then stage these updates to\n"
+  printf "be part of your current change set and retry the commit.\n\n"
+  git status
+#  printf "The following changes were applied:\n\n"
+#  cat "$patch"
   rm -f "$patch"
-  exit 0
+  exit 1
 fi
 
 # a patch has been created, notify the user and exit

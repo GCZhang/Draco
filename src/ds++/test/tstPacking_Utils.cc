@@ -5,11 +5,8 @@
  * \date   Wed Nov  7 15:58:08 2001
  * \brief  Test the routines used for serializing and de-serializing C++
  *         objects.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved */
 //---------------------------------------------------------------------------//
 
 #include "ds++/Packing_Utils.hh"
@@ -20,11 +17,11 @@
 
 using namespace std;
 
-using rtt_dsxx::Packer;
-using rtt_dsxx::Unpacker;
 using rtt_dsxx::pack_data;
-using rtt_dsxx::unpack_data;
+using rtt_dsxx::Packer;
 using rtt_dsxx::soft_equiv;
+using rtt_dsxx::unpack_data;
+using rtt_dsxx::Unpacker;
 
 //---------------------------------------------------------------------------//
 // TESTS
@@ -32,15 +29,14 @@ using rtt_dsxx::soft_equiv;
 
 void do_some_packing(Packer &p, vector<double> const &vd,
                      vector<int> const &vi) {
-  for (size_t i = 0; i < vd.size(); ++i)
-    p << vd[i];
-  for (size_t i = 0; i < vi.size(); ++i)
-    p << vi[i];
+  for (const auto &item : vd)
+    p << item;
+  for (const auto &item : vi)
+    p << item;
   return;
 }
 
 //---------------------------------------------------------------------------//
-
 void compute_buffer_size_test(rtt_dsxx::UnitTest &ut) {
   // make data
 
@@ -55,8 +51,9 @@ void compute_buffer_size_test(rtt_dsxx::UnitTest &ut) {
 
   char const test_string[] = "test";
 
-  unsigned int total_size =
-      num_vi * sizeof(int) + num_vd * sizeof(double) + sizeof(test_string);
+  unsigned int total_size = num_vi * static_cast<unsigned>(sizeof(int)) +
+                            num_vd * static_cast<unsigned>(sizeof(double)) +
+                            static_cast<unsigned>(sizeof(test_string));
   // includes one padding byte
 
   Packer p;
@@ -72,7 +69,8 @@ void compute_buffer_size_test(rtt_dsxx::UnitTest &ut) {
   if (total_size != p.size())
     ITFAILS;
 
-  vector<char> buffer(p.size());
+  Check(p.size() < UINT_MAX);
+  vector<char> buffer(static_cast<unsigned>(p.size()));
 
   // Pack into buffer.
 
@@ -118,6 +116,30 @@ void compute_buffer_size_test(rtt_dsxx::UnitTest &ut) {
       ITFAILS;
   }
 
+  // Now test the global function pack_vec_double.
+  {
+    uint32_t buffer_size(static_cast<unsigned>(vd.size() * sizeof(double)));
+    vector<char> lbuffer(buffer_size);
+    bool byte_swap = false;
+    Check(vd.size() < UINT32_MAX);
+    rtt_dsxx::pack_vec_double(&vd[0], &lbuffer[0],
+                              static_cast<uint32_t>(vd.size()), byte_swap);
+
+    Unpacker localUnpacker;
+    localUnpacker.set_buffer(lbuffer.size(), &lbuffer[0]);
+
+    if (static_cast<int>(localUnpacker.size()) !=
+        localUnpacker.end() - localUnpacker.begin())
+      ITFAILS;
+
+    for (size_t i = 0; i < vd.size(); ++i) {
+      double d;
+      localUnpacker >> d;
+      if (!soft_equiv(d, vd[i]))
+        ITFAILS;
+    }
+  }
+
   if (ut.numFails == 0)
     PASSMSG("compute_buffer_size_test() worked fine.");
 
@@ -126,6 +148,10 @@ void compute_buffer_size_test(rtt_dsxx::UnitTest &ut) {
 
 //---------------------------------------------------------------------------//
 void packing_test(rtt_dsxx::UnitTest &ut) {
+
+  double const eps = std::numeric_limits<double>::epsilon();
+  double const mrv = std::numeric_limits<double>::min();
+
   // make some data
   double x = 102.45;
   double y = 203.89;
@@ -182,14 +208,14 @@ void packing_test(rtt_dsxx::UnitTest &ut) {
 
     u.set_buffer(s1, b1);
     u >> d >> i;
-    if (d != 102.45)
+    if (!soft_equiv(d, 102.45, eps))
       ITFAILS;
     if (i != 10)
       ITFAILS;
 
     u.unpack(d);
     u.unpack(i);
-    if (d != 203.89)
+    if (!soft_equiv(d, 203.89, eps))
       ITFAILS;
     if (i != 11)
       ITFAILS;
@@ -215,7 +241,7 @@ void packing_test(rtt_dsxx::UnitTest &ut) {
     u >> i >> d;
     if (i != 12)
       ITFAILS;
-    if (d != 203.88)
+    if (!rtt_dsxx::soft_equiv(d, 203.88))
       ITFAILS;
 
     if (u.get_ptr() != s2 + b2)
@@ -261,22 +287,21 @@ void packing_test(rtt_dsxx::UnitTest &ut) {
   // unpack
   {
     char cc[4];
-    vector<double> x(100, 0.0);
+    vector<double> lx(100, 0.0);
 
     Unpacker u;
     u.set_buffer(size, buffer);
 
-    for (size_t i = 0; i < x.size(); i++)
-      u >> x[i];
+    for (size_t i = 0; i < lx.size(); i++)
+      u >> lx[i];
 
     u.extract(4, cc);
 
     if (u.get_ptr() != buffer + size)
       ITFAILS;
 
-    for (size_t i = 0; i < x.size(); i++)
-      if (x[i] != ref[i])
-        ITFAILS;
+    if (!rtt_dsxx::soft_equiv(lx.begin(), lx.end(), ref.begin(), ref.end()))
+      ITFAILS;
 
     if (c[0] != 'c')
       ITFAILS;
@@ -291,25 +316,25 @@ void packing_test(rtt_dsxx::UnitTest &ut) {
   // Skip some data and unpack
   {
     char cc[2];
-    vector<double> x(100, 0.0);
+    vector<double> lx(100, 0.0);
 
     Unpacker u;
     u.set_buffer(size, buffer);
 
     // Skip the first 50 integers.
     u.skip(50 * sizeof(double));
-    for (size_t i = 50; i < x.size(); ++i)
-      u >> x[i];
+    for (size_t i = 50; i < lx.size(); ++i)
+      u >> lx[i];
 
     // Skip the first two chatacters
     u.skip(2);
     u.extract(2, cc);
 
     for (size_t i = 0; i < 50; ++i)
-      if (x[i] != 0)
+      if (!rtt_dsxx::soft_equiv(lx[i], 0.0, mrv))
         ITFAILS;
-    for (size_t i = 50; i < x.size(); ++i)
-      if (x[i] != ref[i])
+    for (size_t i = 50; i < lx.size(); ++i)
+      if (!rtt_dsxx::soft_equiv(lx[i], ref[i], eps))
         ITFAILS;
 
     if (cc[0] != 'a')
@@ -320,6 +345,7 @@ void packing_test(rtt_dsxx::UnitTest &ut) {
 
   delete[] buffer;
 }
+
 //---------------------------------------------------------------------------//
 void packing_test_c90(rtt_dsxx::UnitTest &ut) {
   using std::vector;
@@ -374,14 +400,14 @@ void packing_test_c90(rtt_dsxx::UnitTest &ut) {
 
     u.set_buffer(s1, &b1[0]);
     u >> d >> i;
-    if (d != x)
+    if (!rtt_dsxx::soft_equiv(d, x))
       ITFAILS;
     if (i != ix)
       ITFAILS;
 
     u.unpack(d);
     u.unpack(i64);
-    if (d != y)
+    if (!rtt_dsxx::soft_equiv(d, y))
       ITFAILS;
     if (i64 != iy)
       ITFAILS;
@@ -393,7 +419,7 @@ void packing_test_c90(rtt_dsxx::UnitTest &ut) {
     u >> i >> d;
     if (i != iz)
       ITFAILS;
-    if (d != z)
+    if (!rtt_dsxx::soft_equiv(d, z))
       ITFAILS;
 
     if (u.get_ptr() != s2 + &b2[0])
@@ -409,7 +435,6 @@ void packing_test_c90(rtt_dsxx::UnitTest &ut) {
 }
 
 //---------------------------------------------------------------------------//
-
 void std_string_test(rtt_dsxx::UnitTest &ut) {
   vector<char> pack_string;
 
@@ -473,7 +498,6 @@ void std_string_test(rtt_dsxx::UnitTest &ut) {
 }
 
 //---------------------------------------------------------------------------//
-
 void packing_functions_test(rtt_dsxx::UnitTest &ut) {
 
   // Data to pack:
@@ -498,31 +522,30 @@ void packing_functions_test(rtt_dsxx::UnitTest &ut) {
   if (packed_string.size() != y.size() + sizeof(int))
     ITFAILS;
 
-  /* We now pack the two packed datums (x and s) together by manually
-     * inserting the data, including the size of the already packed arrays,
-     * into a new array.
-     *
-     * Honestly, I can't think of a better demonstration of how brain-dead
-     * the packing system is. The root cause is the inistance of only packing
-     * and unpacking into vector<char>. These manage their own memory, so any
-     * attempt to put non-trivial objects together in a data stream will
-     * require copying data. We need the size of the packed data (which
-     * already contains size data) because we have to reserve space in a
-     * vector<char> when we unpack.
-     *
-     * The repeated steps for the two vectors performed below could be
-     * factored out into a function, but this is another layer of abstraction
-     * which shouldn't be necessary. Furthermore, it wouldn't fix all of the
-     * extra copies that this approach requires.
-     *
-     * I was able to improve the unpacking step somewhat with the addition of
-     * the extract command in the unpacker. At least we don't have to spoon
-     * the packed data between containers one character at a time any more.
-     *
-     * Someday, I'll fix this mess. But right now, I've got work to do.
-     *
-     *                                   -MWB.
-     */
+  /* We now pack the two packed datums (x and s) together by manually inserting
+   * the data, including the size of the already packed arrays, into a new
+   * array.
+   *
+   * Honestly, I can't think of a better demonstration of how brain-dead the
+   * packing system is. The root cause is the inistance of only packing and
+   * unpacking into vector<char>. These manage their own memory, so any attempt
+   * to put non-trivial objects together in a data stream will require copying
+   * data. We need the size of the packed data (which already contains size
+   * data) because we have to reserve space in a vector<char> when we unpack.
+   *
+   * The repeated steps for the two vectors performed below could be factored
+   * out into a function, but this is another layer of abstraction which
+   * shouldn't be necessary. Furthermore, it wouldn't fix all of the extra
+   * copies that this approach requires.
+   *
+   * I was able to improve the unpacking step somewhat with the addition of the
+   * extract command in the unpacker. At least we don't have to spoon the packed
+   * data between containers one character at a time any more.
+   *
+   * Someday, I'll fix this mess. But right now, I've got work to do.
+   *
+   *                                   -MWB.
+   */
 
   // A place the hold the packed sizes of already packed data.
   vector<char> packed_int(sizeof(int));
@@ -740,7 +763,6 @@ void packing_map_test(rtt_dsxx::UnitTest &ut) {
 int main(int argc, char *argv[]) {
   rtt_dsxx::ScalarUnitTest ut(argc, argv, rtt_dsxx::release);
   try {
-    // >>> UNIT TESTS
     packing_test(ut);
     packing_test_c90(ut);
     std_string_test(ut);

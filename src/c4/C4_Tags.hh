@@ -4,11 +4,8 @@
  * \author Thomas M. Evans
  * \date   Mon Mar 25 10:05:10 2002
  * \brief  Tags used by C4.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef c4_C4_Tags_hh

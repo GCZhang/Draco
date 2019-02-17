@@ -4,18 +4,14 @@
  * \author Thomas M. Evans
  * \date   Tue Oct  9 15:50:53 2001
  * \brief  GrayOpacity and Multigroup opacity test.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "DummyGrayOpacity.hh"
 #include "DummyMultigroupOpacity.hh"
 #include "DummyOdfmgOpacity.hh"
 #include "ds++/Release.hh"
-#include "ds++/SP.hh"
 #include "ds++/ScalarUnitTest.hh"
 #include "ds++/Soft_Equivalence.hh"
 #include <sstream>
@@ -25,7 +21,6 @@ using namespace std;
 using rtt_cdi::GrayOpacity;
 using rtt_cdi::MultigroupOpacity;
 using rtt_cdi::OdfmgOpacity;
-using rtt_dsxx::SP;
 using rtt_dsxx::soft_equiv;
 
 //---------------------------------------------------------------------------//
@@ -33,14 +28,14 @@ using rtt_dsxx::soft_equiv;
 //---------------------------------------------------------------------------//
 
 void simple_tests(rtt_dsxx::UnitTest &ut) {
-  // make SPs to gray and multigroup opacities
-  SP<GrayOpacity> gray;
-  SP<MultigroupOpacity> mg;
-  SP<OdfmgOpacity> odfmg;
+  // make shared_ptrs to gray and multigroup opacities
+  std::shared_ptr<GrayOpacity> gray;
+  std::shared_ptr<MultigroupOpacity> mg;
+  std::shared_ptr<OdfmgOpacity> odfmg;
 
   // Assign and check gray opacity
-  SP<rtt_cdi_test::DummyGrayOpacity> gray_total;
-  SP<rtt_cdi_test::DummyGrayOpacity> gray_abs;
+  std::shared_ptr<rtt_cdi_test::DummyGrayOpacity> gray_total;
+  std::shared_ptr<rtt_cdi_test::DummyGrayOpacity> gray_abs;
   gray_total.reset(new rtt_cdi_test::DummyGrayOpacity());
   gray_abs.reset(new rtt_cdi_test::DummyGrayOpacity(rtt_cdi::ABSORPTION));
 
@@ -86,8 +81,8 @@ void simple_tests(rtt_dsxx::UnitTest &ut) {
   }
 
   // Assign and check multigroup opacity
-  SP<rtt_cdi_test::DummyMultigroupOpacity> mg_total;
-  SP<rtt_cdi_test::DummyMultigroupOpacity> mg_abs;
+  std::shared_ptr<rtt_cdi_test::DummyMultigroupOpacity> mg_total;
+  std::shared_ptr<rtt_cdi_test::DummyMultigroupOpacity> mg_abs;
   mg_total.reset(new rtt_cdi_test::DummyMultigroupOpacity());
   mg_abs.reset(new rtt_cdi_test::DummyMultigroupOpacity(rtt_cdi::ABSORPTION));
 
@@ -153,8 +148,8 @@ void simple_tests(rtt_dsxx::UnitTest &ut) {
   }
 
   // Assign and check odfmg opacity
-  SP<rtt_cdi_test::DummyOdfmgOpacity> odfmg_total;
-  SP<rtt_cdi_test::DummyOdfmgOpacity> odfmg_abs;
+  std::shared_ptr<rtt_cdi_test::DummyOdfmgOpacity> odfmg_total;
+  std::shared_ptr<rtt_cdi_test::DummyOdfmgOpacity> odfmg_abs;
   odfmg_total.reset(new rtt_cdi_test::DummyOdfmgOpacity());
   odfmg_abs.reset(new rtt_cdi_test::DummyOdfmgOpacity(rtt_cdi::ABSORPTION));
 
@@ -228,12 +223,12 @@ void gray_opacity_test(rtt_dsxx::UnitTest &ut) {
   // Create a GrayOpacity object. //
   // ---------------------------- //
 
-  SP<GrayOpacity> spDGO;
+  std::shared_ptr<GrayOpacity> spDGO;
 
   if ((spDGO.reset(new rtt_cdi_test::DummyGrayOpacity())), spDGO)
-    PASSMSG("SP to new GrayOpacity object created.");
+    PASSMSG("shared_ptr to new GrayOpacity object created.");
   else
-    FAILMSG("Unable to create a SP to new GrayOpacity object.");
+    FAILMSG("Unable to create a shared_ptr to new GrayOpacity object.");
 
   // ------------------------ //
   // Dummy Gray Opacity Tests //
@@ -318,11 +313,11 @@ void multigroup_opacity_test(rtt_dsxx::UnitTest &ut) {
   // Create a Dummy Multigroup Opacity object. //
   // ----------------------------------------- //
 
-  SP<MultigroupOpacity> spDmgO;
+  std::shared_ptr<MultigroupOpacity> spDmgO;
 
   if ((spDmgO.reset(new rtt_cdi_test::DummyMultigroupOpacity())), spDmgO) {
     ostringstream message;
-    message << "SP to new MultigroupOpacity object created.";
+    message << "shared_ptr to new MultigroupOpacity object created.";
     PASSMSG(message.str());
   }
 
@@ -344,7 +339,7 @@ void multigroup_opacity_test(rtt_dsxx::UnitTest &ut) {
   vdensity[1] = 2.0;     // g/cc
 
   // The dummy opacity object should have 3 groups.  Check it.
-  int ng = spDmgO->getNumGroupBoundaries() - 1;
+  size_t ng = spDmgO->getNumGroupBoundaries() - 1;
   if (ng == 3) {
     ostringstream message;
     message << "Correct number of groups found for "
@@ -363,7 +358,7 @@ void multigroup_opacity_test(rtt_dsxx::UnitTest &ut) {
   // specified temperature and density.  Fill this container with
   // the values that DummyMultigroupOpacity should contain.
   std::vector<double> tabulatedMGOpacity(ng);
-  for (int ig = 0; ig < ng; ++ig)
+  for (size_t ig = 0; ig < ng; ++ig)
     tabulatedMGOpacity[ig] = 2 * (temperature + density / 1000) /
                              (energyBoundaries[ig] + energyBoundaries[ig + 1]);
 
@@ -403,7 +398,7 @@ void multigroup_opacity_test(rtt_dsxx::UnitTest &ut) {
   std::vector<std::vector<double>> vRefMgOpacity(2);
   for (size_t it = 0; it < vtemperature.size(); ++it) {
     vRefMgOpacity[it].resize(ng);
-    for (int ig = 0; ig < ng; ++ig)
+    for (size_t ig = 0; ig < ng; ++ig)
       vRefMgOpacity[it][ig] = 2.0 * (vtemperature[it] + density / 1000.0) /
                               (energyBoundaries[ig] + energyBoundaries[ig + 1]);
   }
@@ -435,15 +430,15 @@ void multigroup_opacity_test(rtt_dsxx::UnitTest &ut) {
   // functionality. Of course this functionality is not available through
   // CDI.
 
-  SP<rtt_cdi_test::DummyMultigroupOpacity> spDumMgOp;
+  std::shared_ptr<rtt_cdi_test::DummyMultigroupOpacity> spDumMgOp;
   if ((spDumMgOp.reset(new rtt_cdi_test::DummyMultigroupOpacity())),
       spDumMgOp) {
     ostringstream message;
-    message << "SP to new DummyMultigroupOpacity object created.";
+    message << "shared_ptr to new DummyMultigroupOpacity object created.";
     PASSMSG(message.str());
   } else {
     ostringstream message;
-    message << "Unable to create a SP "
+    message << "Unable to create a shared_ptr "
             << "to a new DummyMultigroupOpacity object.";
     FAILMSG(message.str());
   }
@@ -457,7 +452,7 @@ void multigroup_opacity_test(rtt_dsxx::UnitTest &ut) {
 
   // Reference Values
   for (size_t it = 0; it < vtemperature.size(); ++it)
-    for (int ig = 0; ig < ng; ++ig)
+    for (size_t ig = 0; ig < ng; ++ig)
       vRefOpacity[it * ng + ig] =
           2.0 * (vtemperature[it] + vdensity[it] / 1000.0) /
           (energyBoundaries[ig] + energyBoundaries[ig + 1]);
@@ -490,12 +485,12 @@ void odfmg_opacity_test(rtt_dsxx::UnitTest &ut) {
   // Create a Dummy Odfmg Opacity object. //
   // ----------------------------------------- //
 
-  SP<OdfmgOpacity> spDumOdfmgOpacity;
+  std::shared_ptr<OdfmgOpacity> spDumOdfmgOpacity;
 
   if ((spDumOdfmgOpacity.reset(new rtt_cdi_test::DummyOdfmgOpacity())),
       spDumOdfmgOpacity) {
     ostringstream message;
-    message << "SP to new OdfmgOpacity object created.";
+    message << "shared_ptr to new OdfmgOpacity object created.";
     PASSMSG(message.str());
   }
 
@@ -517,7 +512,7 @@ void odfmg_opacity_test(rtt_dsxx::UnitTest &ut) {
   vdensity[1] = 2.0;     // g/cc
 
   // The dummy opacity object should have 3 groups.  Check it.
-  int numGroups = spDumOdfmgOpacity->getNumGroupBoundaries() - 1;
+  size_t numGroups = spDumOdfmgOpacity->getNumGroupBoundaries() - 1;
   if (numGroups == 3) {
     ostringstream message;
     message << "Correct number of groups found for "
@@ -531,7 +526,7 @@ void odfmg_opacity_test(rtt_dsxx::UnitTest &ut) {
   }
 
   // The dummy opacity object should have 4 bands.  Check it.
-  int numBands = spDumOdfmgOpacity->getNumBands();
+  size_t numBands = spDumOdfmgOpacity->getNumBands();
   if (numBands == 4) {
     ostringstream message;
     message << "Correct number of groups found for "
@@ -554,9 +549,9 @@ void odfmg_opacity_test(rtt_dsxx::UnitTest &ut) {
   // specified temperature and density.  Fill this container with
   // the values that DummyOdfmgOpacity should contain.
   std::vector<std::vector<double>> odfmgRefOpacity(numGroups);
-  for (int group = 0; group < numGroups; ++group) {
+  for (size_t group = 0; group < numGroups; ++group) {
     odfmgRefOpacity[group].resize(numBands);
-    for (int band = 0; band < numBands; ++band) {
+    for (size_t band = 0; band < numBands; ++band) {
       odfmgRefOpacity[group][band] =
           2.0 * (temp + dens / 1000.0) /
           (energyBoundaries[group] + energyBoundaries[group + 1]) *
@@ -586,23 +581,21 @@ void odfmg_opacity_test(rtt_dsxx::UnitTest &ut) {
 
   // Reference values.
 
-  // The opacity container is a vector<vector<double>>.  Each nested
-  // vector contains all of the group opacity values for a single
-  // temperature.
+  // The opacity container is a vector<vector<double>>.  Each nested vector
+  // contains all of the group opacity values for a single temperature.
 
-  // a MG opacity set for a single temperature, density combination
-  // can be extracted from this container by using the following
-  // type of assignment.
+  // a MG opacity set for a single temperature, density combination can be
+  // extracted from this container by using the following type of assignment.
   // std::vector< double > vec1 = vRefMgOpacity[0];
 
-  // the size of this vector is the number of temperatures,
-  // ***not*** the number of groups!
+  // the size of this vector is the number of temperatures, ***not*** the number
+  // of groups!
   std::vector<std::vector<std::vector<double>>> vRefOpacity(2);
   for (size_t it = 0; it < vtemperature.size(); ++it) {
     vRefOpacity[it].resize(numGroups);
-    for (int group = 0; group < numGroups; ++group) {
+    for (size_t group = 0; group < numGroups; ++group) {
       vRefOpacity[it][group].resize(numBands);
-      for (int band = 0; band < numBands; ++band) {
+      for (size_t band = 0; band < numBands; ++band) {
         vRefOpacity[it][group][band] =
             2.0 * (vtemperature[it] + dens / 1000.0) /
             (energyBoundaries[group] + energyBoundaries[group + 1]) *
@@ -631,21 +624,20 @@ void odfmg_opacity_test(rtt_dsxx::UnitTest &ut) {
 
   // STL-like accessor (MG opacities)
 
-  // We have added STL-like getOpacity functions to DummyOdfmgOpacity,
-  // these are not available through the rtt_cdi::OdfmgOpacity base
-  // class so we test them as a DummyOdfmgOpacity.  This demonstrates
-  // that one could make an opacity class that contains extra
-  // functionality. Of course this functionality is not available through
-  // CDI.
+  // We have added STL-like getOpacity functions to DummyOdfmgOpacity, these are
+  // not available through the rtt_cdi::OdfmgOpacity base class so we test them
+  // as a DummyOdfmgOpacity.  This demonstrates that one could make an opacity
+  // class that contains extra functionality. Of course this functionality is
+  // not available through CDI.
 
-  SP<rtt_cdi_test::DummyOdfmgOpacity> spDumMgOp;
+  std::shared_ptr<rtt_cdi_test::DummyOdfmgOpacity> spDumMgOp;
   if ((spDumMgOp.reset(new rtt_cdi_test::DummyOdfmgOpacity())), spDumMgOp) {
     ostringstream message;
-    message << "SP to new DummyOdfmgOpacity object created.";
+    message << "shared_ptr to new DummyOdfmgOpacity object created.";
     PASSMSG(message.str());
   } else {
     ostringstream message;
-    message << "Unable to create a SP "
+    message << "Unable to create a shared_ptr "
             << "to a new DummyOdfmgOpacity object.";
     FAILMSG(message.str());
   }
@@ -659,7 +651,7 @@ void odfmg_opacity_test(rtt_dsxx::UnitTest &ut) {
 
   // Reference Values
   for (size_t it = 0; it < vtemperature.size(); ++it)
-    for (int ig = 0; ig < numGroups; ++ig)
+    for (size_t ig = 0; ig < numGroups; ++ig)
       vRefOpacityIter[it * numGroups + ig] =
           2.0 * (vtemperature[it] + vdensity[it] / 1000.0) /
           (energyBoundaries[ig] + energyBoundaries[ig + 1]);

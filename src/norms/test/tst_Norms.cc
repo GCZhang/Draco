@@ -4,11 +4,11 @@
  * \author Rob Lowrie
  * \date   Fri Jan 14 09:12:16 2005
  * \brief  Tests Norms.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC. 
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC. 
  *         All rights reserved.
  */
 //---------------------------------------------------------------------------//
-// $Id$
+
 //---------------------------------------------------------------------------//
 
 #include "c4/ParallelUnitTest.hh"
@@ -25,10 +25,10 @@
 
 using namespace std;
 
+using rtt_dsxx::soft_equiv;
 using rtt_norms::Norms;
 using rtt_norms::Norms_Labeled;
 using rtt_norms::Norms_Proc;
-using rtt_dsxx::soft_equiv;
 
 //---------------------------------------------------------------------------//
 // TESTS

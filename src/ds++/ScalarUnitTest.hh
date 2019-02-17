@@ -4,11 +4,8 @@
  * \author Kelly Thompson
  * \date   Thu May 18 17:08:54 2006
  * \brief  Provide services for scalar unit tests
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef dsxx_ScalarUnitTest_hh
@@ -58,7 +55,8 @@ public:
   //! Default constructors.
   DLL_PUBLIC_dsxx ScalarUnitTest(int &argc, char **&argv,
                                  string_fp_void release_,
-                                 std::ostream &out_ = std::cout);
+                                 std::ostream &out_ = std::cout,
+                                 bool verbose_ = true);
 
   //! The copy constructor is disabled.
   ScalarUnitTest(const ScalarUnitTest &rhs);
@@ -75,7 +73,24 @@ public:
   ScalarUnitTest &operator=(const ScalarUnitTest &rhs);
 };
 
+//----------------------------------------------------------------------------//
+/*!
+ * \brief Run a scalar unit test.
+ *
+ * \param[in] argc Number of command line arguments
+ * \param[in] argv Command line arguments
+ * \param[in] release Release string
+ * \param[in] lambda Lambda function defining the test.
+ * \return EXIT_SUCCESS or EXIT_FAILURE as appropriate.
+ */
+
+template <typename... Lambda, typename Release>
+int do_scalar_unit_test(int argc, char *argv[], Release release,
+                        Lambda const &... lambda);
+
 } // end namespace rtt_dsxx
+
+#include "ScalarUnitTest.i.hh"
 
 #endif // dsxx_ScalarUnitTest_hh
 

@@ -1,8 +1,7 @@
 # crontab for tt-fey
 
-
 # Create a svn hotcopy of capsaicin at /usr/projects/jayenne/regress/svn
-*/15 * * * * /usr/projects/jayenne/regress/draco/regression/sync_repository.sh &> /usr/projects/jayenne/regress/logs/sync_repository.tt.log
+*/20 * * * * /usr/projects/jayenne/regress/draco/regression/sync_repository.sh
 
 #------------------------------------------------------------------------------#
 # Regression Options:
@@ -16,21 +15,32 @@
 #    pgi   - build with the PGI compiler
 #    nr    - build with non-reproducible option.
 #    fulldiagnostics - build with IEEE checks enabled
+#    vtest           - verification tests (long running tests)
 #------------------------------------------------------------------------------#
 
 # --------------------
 # Haswell
 # --------------------
 
-01 01 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Debug -p "draco jayenne capsaicin" &> /usr/projects/jayenne/regress/logs/tt-Debug-master.log
+01 01 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Debug -p \"draco jayenne core trt npt\"
 
-01 02 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Release -p "draco jayenne capsaicin" &> /usr/projects/jayenne/regress/logs/tt-Release-master.log
+01 01 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Release -p \"draco jayenne core trt npt\"
+
+01 02 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Release -p \"jayenne core trt npt\" -e vtest
+
+# performance over time
+01 03 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Release -e perfbench -p \"jayenne core trt npt\"
 
 # --------------------
 # KNL
 # --------------------
 
-01 01 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Release -p "draco" -e knl &> /usr/projects/jayenne/regress/logs/tt-Debug-knl-master.log
+01 01 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Release -p \"draco jayenne core trt npt\" -e knl
+
+01 02 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Release -p \"jayenne core trt npt\" -e \"knl vtest\"
+
+# performance over time
+01 03 * * 0-6 /usr/projects/jayenne/regress/draco/regression/regression-master.sh -r -d Nightly -b Release -e \"knl perfbench\" -p \"core trt npt\"
 
 # |    |    |    |    |   |
 # |    |    |    |    |   +- command

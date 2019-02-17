@@ -5,11 +5,11 @@
  * \date   Thu Aug 27 07:48:41 1998
  * \brief  A dummy package to exercize the time-step controller field
  *         advisors.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
  *         All rights reserved.
  */
 //---------------------------------------------------------------------------//
-// $Id$
+
 //---------------------------------------------------------------------------//
 
 #include "dummy_package.hh"

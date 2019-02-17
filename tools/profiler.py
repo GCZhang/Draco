@@ -3,9 +3,8 @@
 ## profiler.py
 ## Mike Buksas
 ## Thu Oct 30 09:07:41 2003
-## $Id$
 ###############################################################################
-## Copyright (C) 2016 Los Alamos National Security, LLC.
+## Copyright (C) 2016-2019 Triad National Security, LLC.
 ###############################################################################
 ##---------------------------------------------------------------------------##
 ## Collect profile information from multiple runs of an executable.

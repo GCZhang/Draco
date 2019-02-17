@@ -4,11 +4,8 @@
  *  \brief  Aggregates a collection of FundUnits to create a complete 
  *          UnitSystemType.
  *  \date   Fri Oct 24 15:04:41 2003
- *  \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *          All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ *  \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *          All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef __units_UnitSystemType_hh__
@@ -27,11 +24,11 @@ namespace rtt_units {
  *        on the fly.
  *
  * \sa UnitSystem
- *  
- * \example test/tstUnitSystemType.cc
- * \example tst/tstUnitSystem.cc
+ * \sa test/tstUnitSystemType.cc
+ * \sa test/tstUnitSystem.cc - a demonstration of using UnitSystemTypoe
  *
  * Different ways to construct a UnitSystem
+ 
  * \verbatim
  * using rtt_units::UnitSystemType;
  * using rtt_units::UnitSystem;

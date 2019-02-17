@@ -1,7 +1,7 @@
 #-----------------------------*-cmake-*----------------------------------------#
 # file   draco_regression_macros.cmake
 # brief  Helper macros for setting up a CTest/CDash regression system
-# note   Copyright (C) 2016 Los Alamos National Security, LLC.
+# note   Copyright (C) 2016-2019 Triad National Security, LLC.
 #        All rights reserved.
 #------------------------------------------------------------------------------#
 
@@ -28,13 +28,44 @@ macro( find_num_procs_avail_for_running_tests )
 
   # If this job is running under Torque (msub script), use the environment
   # variable PBS_NP or SLURM_NPROCS
-  if( NOT "$ENV{PBS_NP}x" STREQUAL "x" )
+  if( DEFINED ENV{CRAYPE_DIR} )
+
+    set( num_test_procs 1 )
+    set( num_sockets 1 )
+    if( EXISTS /usr/bin/lscpu )
+      execute_process( COMMAND /usr/bin/lscpu
+        OUTPUT_VARIABLE lscpu_out
+        OUTPUT_STRIP_TRAILING_WHITESPACE )
+      # break text block into a list of lines
+      string( REPLACE "\n" ";"  lscpu ${lscpu_out} )
+      foreach( line ${lscpu} )
+        if( ${line} MATCHES "Socket")
+          string( REGEX REPLACE "^.* ([0-9]+)$" "\\1" num_sockets ${line} )
+        endif()
+        # find number of physical cores
+        if( ${line} MATCHES "per socket")
+          string( REGEX REPLACE "^.* ([0-9]+)$" "\\1" num_test_procs ${line} )
+        endif()
+        # if( ${line} MATCHES "Model name")
+        #   if( ${line} MATCHES "Xeon Phi" )
+        #     #     message("is knl")
+        #     # With srun, the KNL has trouble with 68 cores worth of jobs, so
+        #     # limit to a lower number
+        #     set( num_test_procs 8 )
+        #   endif()
+        # endif()
+      endforeach()
+      math( EXPR num_test_procs "${num_test_procs} * ${num_sockets}" )
+      unset( num_sockets )
+    endif()
+
+  elseif( NOT "$ENV{PBS_NP}x" STREQUAL "x" )
     set( num_test_procs $ENV{PBS_NP} )
   elseif( NOT "$ENV{SLURM_NPROCS}x" STREQUAL "x")
     set( num_test_procs $ENV{SLURM_NPROCS} )
   else()
     # If this is not a known batch system, then attempt to set values according
-    # to machine name:
+    # to machine properties
     include(ProcessorCount)
     ProcessorCount(num_test_procs)
   endif()
@@ -49,7 +80,11 @@ endmacro()
 # ------------------------------------------------------------
 macro( set_defaults )
 
-  # Prerequisits:
+  message("\n----------------------------------------
+Setting defaults
+----------------------------------------\n")
+
+  # Prerequisites:
   #
   # This setup assumes that the project work_dir will contain 3 subdirectories:
   # source, build and target.  See how CMAKE_SOURCE_DIRECTORY,
@@ -80,23 +115,21 @@ win32$ set work_dir=c:/full/path/to/work_dir
   endif( NOT work_dir )
   file( TO_CMAKE_PATH ${work_dir} work_dir )
 
-  # Set the sitename, but strip any domain information
-  site_name( sitename )
-  string( REGEX REPLACE "([A-z0-9]+).*" "\\1" sitename ${sitename} )
-  if( ${sitename} MATCHES "tt" )
-     set( sitename "Trinitite" )
-  elseif( ${sitename} MATCHES "tr" )
-     set( sitename "Trinity" )
-  elseif( ${sitename} MATCHES "ml[0-9]+" OR
-      ${sitename} MATCHES "ml-fey"       OR
-      ${sitename} STREQUAL "ml")
-    set( sitename "Moonlight" )
-  elseif( ${sitename} MATCHES "cn[0-9]+" OR ${sitename} MATCHES "darwin-fe")
-     set( sitename "Darwin" )
-  elseif( ${sitename} MATCHES "sn[0-9]+" OR
-      ${sitename} MATCHES "sn-fey" OR
-      ${sitename} STREQUAL "sn")
-     set( sitename "Snow" )
+  # Set the sitename, but strip any domain information. If we are on an HPC
+  # machine, attempt to associate the backend name with the same string that is
+  # used to identify the front end. If we are on a LANL HPC machine, attempt to
+  # use the sys_name tool for this purpose.
+  if( EXISTS /usr/projects/hpcsoft/utilities/bin/sys_name )
+    execute_process( COMMAND /usr/projects/hpcsoft/utilities/bin/sys_name
+      OUTPUT_VARIABLE sitename
+      OUTPUT_STRIP_TRAILING_WHITESPACE )
+  else()
+    site_name( sitename )
+    string( REGEX REPLACE "([A-z0-9]+).*" "\\1" sitename ${sitename} )
+  endif()
+
+  if( ${sitename} MATCHES "cn[0-9]+" OR ${sitename} MATCHES "darwin-fe")
+    set( sitename "Darwin" )
   endif()
   message( "sitename = ${sitename}")
   set( CTEST_SITE ${sitename} )
@@ -113,8 +146,8 @@ win32$ set work_dir=c:/full/path/to/work_dir
 
   if( WIN32 )
     # add option for "NMake Makefiles JOM"?
-    set( CTEST_CMAKE_GENERATOR "NMake Makefiles" )
-    # set( CTEST_CMAKE_GENERATOR "Visual Studio 11" )
+    # set( CTEST_CMAKE_GENERATOR "NMake Makefiles" )
+    set( CTEST_CMAKE_GENERATOR "Visual Studio 15 2017 Win64" )
   else()
     set( CTEST_CMAKE_GENERATOR "Unix Makefiles" )
   endif()
@@ -150,8 +183,10 @@ win32$ set work_dir=c:/full/path/to/work_dir
       /usr/projects/draco/vendors
       c:/vendors
       )
-   set( AUTODOCDIR "${VENDOR_DIR}/../autodoc" )
-   get_filename_component( AUTODOCDIR "${AUTODOCDIR}" ABSOLUTE )
+   if( NOT "$ENV{AUTODOCDIR}x" STREQUAL "x" )
+     set( AUTODOCDIR "$ENV{AUTODOCDIR}" )
+     get_filename_component( AUTODOCDIR "${AUTODOCDIR}" ABSOLUTE )
+   endif()
 
    set( VERBOSE ON )
    set( CTEST_OUTPUT_ON_FAILURE ON )
@@ -165,19 +200,23 @@ win32$ set work_dir=c:/full/path/to/work_dir
    #   many cores we can use.
    include(ProcessorCount)
    ProcessorCount(num_compile_procs)
-   if( NOT WIN32 )
-       if(NOT num_compile_procs EQUAL 0)
+   if(NOT "${num_compile_procs}" EQUAL 0)
+      if( NOT WIN32 )
          set(CTEST_BUILD_FLAGS "-j${num_compile_procs} -l${num_compile_procs}")
          if( "${sitename}" STREQUAL "Trinity" OR "${sitename}" STREQUAL "Trinitite")
            # We compile on the front end for this machine. Since we don't know
-           # the actual load apriori, we use the -l option to limit the total
+           # the actual load a priori, we use the -l option to limit the total
            # load on the machine.  For CT, my experience shows that 'make -l N'
            # actually produces a machine load ~ 1.5*N, so we will specify the
            # max load to be half of the total number of procs.
            math(EXPR half_num_compile_procs "${num_compile_procs} / 2" )
            set(CTEST_BUILD_FLAGS "-j ${half_num_compile_procs} -l ${num_compile_procs}")
          endif()
-       endif()
+      else()
+         # Parallel builds for 'msbuild'
+         # Ref: https://docs.microsoft.com/en-us/visualstudio/msbuild/msbuild-command-line-reference?view=vs-2015
+         set(CTEST_BUILD_FLAGS "-m:${num_compile_procs}")
+      endif()
    endif()
 
    # Testing parallelism
@@ -220,6 +259,10 @@ endmacro( set_defaults )
 # ------------------------------------------------------------
 macro( parse_args )
 
+  message("\n----------------------------------------
+Parsing arguments
+----------------------------------------\n")
+
   # Default is "Experimental." Special builds are "Nightly" or "Continuous"
   if( ${CTEST_SCRIPT_ARG} MATCHES Nightly )
     set( CTEST_MODEL "Nightly" )
@@ -230,12 +273,12 @@ macro( parse_args )
   # Default is "Release."
   # Special types are "Debug," "RelWithDebInfo" or "MinSizeRel"
   if( ${CTEST_SCRIPT_ARG} MATCHES Debug )
-     set( CTEST_BUILD_CONFIGURATION "Debug" )
+    set( CTEST_BUILD_CONFIGURATION "Debug" )
   elseif( ${CTEST_SCRIPT_ARG} MATCHES RelWithDebInfo )
-     set( CTEST_BUILD_CONFIGURATION "RelWithDebInfo" )
+    set( CTEST_BUILD_CONFIGURATION "RelWithDebInfo" )
   elseif( ${CTEST_SCRIPT_ARG} MATCHES MinSizeRel )
-     set( CTEST_BUILD_CONFIGURATION "MinSizeRel" )
-  endif( ${CTEST_SCRIPT_ARG} MATCHES Debug )
+    set( CTEST_BUILD_CONFIGURATION "MinSizeRel" )
+  endif()
 
   # Post options: SubmitOnly or NoSubmit
   set( CTEST_CONFIGURE OFF )
@@ -244,26 +287,22 @@ macro( parse_args )
   set( CTEST_SUBMIT    OFF )
   set( CTEST_AUTODOC   OFF )
   if( ${CTEST_SCRIPT_ARG} MATCHES Configure )
-     set( CTEST_CONFIGURE "ON" )
+    set( CTEST_CONFIGURE "ON" )
   endif()
   if( ${CTEST_SCRIPT_ARG} MATCHES Build )
-     set( CTEST_BUILD "ON" )
+    set( CTEST_BUILD "ON" )
   endif()
   if( ${CTEST_SCRIPT_ARG} MATCHES Test )
-     set( CTEST_TEST "ON" )
+    set( CTEST_TEST "ON" )
   endif()
   if( ${CTEST_SCRIPT_ARG} MATCHES Submit )
-     set( CTEST_SUBMIT "ON" )
+    set( CTEST_SUBMIT "ON" )
   endif()
   if( ${CTEST_SCRIPT_ARG} MATCHES Autodoc )
-     set( CTEST_AUTODOC "ON" )
+    set( CTEST_AUTODOC "ON" )
   endif()
 
   # default compiler name based on platform
-  if( WIN32 )
-    set( compiler_short_name "cl" )
-  endif()
-
   unset(compiler_version)
   if( DEFINED ENV{LCOMPILERVER} )
     set( compiler_version $ENV{LCOMPILERVER} )
@@ -273,7 +312,7 @@ macro( parse_args )
   endif()
 
   # refine compiler short name.
-  set(USE_CUDA OFF)
+  set(WITH_CUDA OFF)
   if( "$ENV{CXX}" MATCHES "pgCC" OR "$ENV{CXX}" MATCHES "pgc[+][+]" )
     set( compiler_short_name "pgi" )
   elseif("$ENV{CXX}" MATCHES "clang" )
@@ -307,6 +346,15 @@ macro( parse_args )
       OUTPUT_STRIP_TRAILING_WHITESPACE )
     string( REGEX REPLACE "[^0-9]*([0-9]+).([0-9]+).([0-9]+).*" "\\1.\\2.\\3"
       compiler_version ${cxx_version} )
+  elseif( CTEST_CMAKE_GENERATOR MATCHES "Visual Studio" )
+    set( compiler_short_name "cl" )
+    execute_process( COMMAND cl
+      ERROR_VARIABLE cxx_version
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      OUTPUT_QUIET
+      )
+    string( REGEX REPLACE "[^0-9]*([0-9]+).([0-9]+).([0-9]+).*" "\\1.\\2.\\3"
+      compiler_version "${cxx_version}" )
   else()
     set( compiler_short_name "unknown" )
     set( compiler_version "unknown" )
@@ -317,36 +365,52 @@ macro( parse_args )
 
   # append the compiler_short_name with the extra_params string (if any) and set
   # some variables based on extra_param's value.
-  if( NOT "$ENV{extra_params}x" STREQUAL "x" )
-    set( compiler_short_name "${compiler_short_name}-$ENV{extra_params}" )
-    if( $ENV{extra_params} MATCHES "cuda" )
-      set(USE_CUDA ON)
-    elseif( $ENV{extra_params} MATCHES "fulldiagnostics" )
+  if( DEFINED ENV{extra_params_sort_safe} )
+
+    if( NOT "$ENV{extra_params_sort_safe}empty" STREQUAL "empty" )
+      set( compiler_short_name
+        "${compiler_short_name}-$ENV{extra_params_sort_safe}" )
+    endif()
+
+    if( $ENV{extra_params_sort_safe} MATCHES "cuda" )
+      set(WITH_CUDA ON)
+    endif()
+    if( $ENV{extra_params_sort_safe} MATCHES "fulldiagnostics" )
       set( FULLDIAGNOSTICS "DRACO_DIAGNOSTICS:STRING=7")
-      # Note 'DRACO_TIMING:STRING=2' will break milagro tests (python cannot parse output).
-    elseif( $ENV{extra_params} MATCHES "nr" )
-      set( RNG_NR "ENABLE_RNG_NR:BOOL=ON" )
+      # Note 'DRACO_TIMING:STRING=2' will break milagro tests (python cannot
+      # parse output).
+    endif()
+    if( $ENV{extra_params_sort_safe} MATCHES "scalar" )
+      set( DRACO_C4 "DRACO_C4:STRING=SCALAR" )
+    elseif( $ENV{extra_params_sort_safe} MATCHES "static" )
+      set( DRACO_LIBRARY_TYPE "DRACO_LIBRARY_TYPE:STRING=STATIC" )
+    endif()
+    if( $ENV{extra_params_sort_safe} MATCHES "vtest" )
+      list( APPEND CUSTOM_VARS "RUN_VERIFICATION_TESTS:BOOL=ON" )
+    endif()
+    if( $ENV{extra_params_sort_safe} MATCHES "perfbench" )
+      list( APPEND CUSTOM_VARS "ENABLE_PERFBENCH:BOOL=ON" )
     endif()
   endif()
 
   # Set the build name: (<platform>-<compiler>-<configuration>)
   if( WIN32 )
-    if( "$ENV{dirext}" MATCHES "x64" )
-      set( CTEST_BUILD_NAME "Win64_${CTEST_BUILD_CONFIGURATION}" )
-    else()
-      set( CTEST_BUILD_NAME "Win32_${CTEST_BUILD_CONFIGURATION}" )
-    endif()
+    set( CTEST_BUILD_NAME "${compiler_short_name}-${CTEST_BUILD_CONFIGURATION}" )
+    # if( "$ENV{dirext}" MATCHES "x64" )
+    # endif()
   elseif( APPLE ) # OS/X
-    set( CTEST_BUILD_NAME "OSX_${compiler_short_name}_${CTEST_BUILD_CONFIGURATION}" )
+    set( CTEST_BUILD_NAME "${compiler_short_name}_${CTEST_BUILD_CONFIGURATION}" )
   else() # Unix
-    set( CTEST_BUILD_NAME "Linux64_${compiler_short_name}_${CTEST_BUILD_CONFIGURATION}" )
-    if( NOT "$ENV{USE_GITHUB}notset" STREQUAL "notset" )
-      if( "$ENV{featurebranch}notset" STREQUAL "notset" )
-        message(FATAL_ERROR "Checkout from github requested, but ENV{featurebranch} is not set.")
-      endif()
-      set( CTEST_BUILD_NAME "Linux64_${compiler_short_name}_${CTEST_BUILD_CONFIGURATION}-$ENV{featurebranch}" )
+    set( CTEST_BUILD_NAME "${compiler_short_name}_${CTEST_BUILD_CONFIGURATION}" )
+    if( "$ENV{featurebranch}notset" STREQUAL "notset" )
+      message(FATAL_ERROR "Checkout from github requested, but ENV{featurebranch} is not set.")
     endif()
+    set( CTEST_BUILD_NAME "${compiler_short_name}_${CTEST_BUILD_CONFIGURATION}-$ENV{featurebranch}" )
   endif()
+
+  # I think this is only used by msbuild targets (e.g. 'ctest -j 4 -C Debug'),
+  # but I want to define it universally.
+  set( CTEST_CONFIGURATION_TYPE "${CTEST_BUILD_CONFIGURATION}" )
 
   # Default is no Coverage Analysis
   if( ${CTEST_SCRIPT_ARG} MATCHES Coverage )
@@ -366,7 +430,7 @@ macro( parse_args )
 
   # Bounds Checking
   if( ${CTEST_SCRIPT_ARG} MATCHES bounds_checking )
-    if( "${compiler_short_name}" STREQUAL "gcc-4.8.5" )
+    if( "${compiler_short_name}" MATCHES "gcc-4.8.5" )
       set( BOUNDS_CHECKING "GCC_ENABLE_GLIBCXX_DEBUG:BOOL=ON" )
     else()
       message(FATAL_ERROR "I don't know how to turn on bounds checking for compiler = ${compiler_short_name}" )
@@ -377,16 +441,21 @@ macro( parse_args )
     set( CTEST_BUILD_NAME "${CTEST_BUILD_NAME}$ENV{buildname_append}" )
   endif()
 
+# Convert CUSTOM_VARS from a list into a multi-line string
+string(REGEX REPLACE ";" "\n" CUSTOM_VARS "${CUSTOM_VARS}")
+
   if( ${drm_verbose} )
     message("
 CTEST_MODEL                 = ${CTEST_MODEL}
 CTEST_BUILD_CONFIGURATION   = ${CTEST_BUILD_CONFIGURATION}
+CTEST_CONFIGURATION_TYPE    = ${CTEST_CONFIGURATION_TYPE}
 compiler_short_name         = ${compiler_short_name}
 compiler_version            = ${compiler_version}
 CTEST_BUILD_NAME            = ${CTEST_BUILD_NAME}
 ENABLE_C_CODECOVERAGE       = ${ENABLE_C_CODECOVERAGE}
 ENABLE_DYNAMICANALYSIS      = ${ENABLE_DYNAMICANALYSIS}
 CTEST_USE_LAUNCHERS         = ${CTEST_USE_LAUNCHERS}
+CUSTOM_VARS                 = ${CUSTOM_VARS}
 ")
   endif()
 endmacro( parse_args )
@@ -396,6 +465,10 @@ endmacro( parse_args )
 # ------------------------------------------------------------
 macro( find_tools )
 
+  message("\n----------------------------------------
+Finding tools...
+----------------------------------------\n")
+
   find_program( CTEST_CMD
     NAMES ctest
     HINTS
@@ -404,18 +477,6 @@ macro( find_tools )
     )
   if( NOT EXISTS ${CTEST_CMD} )
     message( FATAL_ERROR "Cound not find ctest executable.(CTEST_CMD = ${CTEST_CMD})" )
-  endif()
-
-  find_program( CTEST_SVN_COMMAND
-     NAMES svn
-     HINTS
-        "C:/Program Files (x86)/CollabNet Subversion"
-        "C:/Program Files (x86)/CollabNet/Subversion Client"
-        # NO_DEFAULT_PATH
-     )
-  set( CTEST_CVS_COMMAND ${CTEST_SVN_COMMAND} )
-  if( NOT EXISTS "${CTEST_CVS_COMMAND}" )
-    message( FATAL_ERROR "Cound not find cvs executable." )
   endif()
 
   find_program( CTEST_GIT_COMMAND
@@ -438,20 +499,14 @@ macro( find_tools )
     message( FATAL_ERROR "Cound not find cmake executable." )
   endif()
 
-  find_program( MAKECOMMAND
-    NAMES nmake make
-    HINTS
-      "C:/Program Files (x86)/Microsoft Visual Studio 12.0/VC/bin"
-      # NO_DEFAULT_PATH
-    )
-  if( NOT EXISTS "${MAKECOMMAND}" )
-    message( FATAL_ERROR "Cound not find make/nmake executable." )
+  if( NOT WIN32 )
+    # if MAKECOMMAND is found when using "Visual Studio" as the generator,
+    # the compiler 'cl' will be found to be unable to compile a simple
+    # program.
+    find_program( MAKECOMMAND NAMES make )
+    # No memory check program on Windows for now.
+    find_program( CTEST_MEMORYCHECK_COMMAND NAMES valgrind )
   endif()
-
-  find_program( CTEST_MEMORYCHECK_COMMAND NAMES valgrind )
-  # --show-reachable --num-callers=50
-  # --suppressions=<filename>
-  # --gen-suppressions=all|yes|no
 
   if(ENABLE_C_CODECOVERAGE)
     find_program( COV01 NAMES cov01 )
@@ -478,15 +533,12 @@ macro( find_tools )
   if( ${drm_verbose} )
     message("
 CTEST_CMD           = ${CTEST_CMD}
-CTEST_CVS_COMMAND   = ${CTEST_CVS_COMMAND}
-CTEST_SVN_COMMAND   = ${CTEST_SVN_COMMAND}
 CTEST_GIT_COMMAND   = ${CTEST_GIT_COMMAND}
 CTEST_CMAKE_COMMAND = ${CTEST_CMAKE_COMMAND}
 MAKECOMMAND         = ${MAKECOMMAND}
 CTEST_MEMORYCHECK_COMMAND         = ${CTEST_MEMORYCHECK_COMMAND}
 MEMORYCHECK_SUPPRESSIONS_FILE     = ${MEMORYCHECK_SUPPRESSIONS_FILE}
 CTEST_MEMORYCHECK_COMMAND_OPTIONS = ${CTEST_MEMORYCHECK_COMMAND_OPTIONS}
-CTEST_CONFIGURE_COMMAND           = ${CTEST_CONFIGURE_COMMAND}
 
 ")
     if(ENABLE_C_CODECOVERAGE)
@@ -527,7 +579,7 @@ macro( set_git_command gitpath )
   if( NOT EXISTS ${CTEST_SOURCE_DIRECTORY}/CMakeLists.txt )
     if( ${gitpath} MATCHES "Draco" )
       set( CTEST_CHECKOUT_COMMAND
-        "${CTEST_GIT_COMMAND} clone --depth 1 https://github.com/losalamos/${gitpath} source" )
+        "${CTEST_GIT_COMMAND} clone --depth 1 https://github.com/lanl/${gitpath} source" )
     else()
       # This assumes that a valid ssh-key exists in the current environment and
       # works with gitlab.lanl.gov.
@@ -663,10 +715,10 @@ macro( setup_for_code_coverage )
             # https://github.com/Slicer/Slicer/blob/57f14d0d233ee103e365161cfc0b3962df0bc203/CMake/MIDASCTestUploadURL.cmake#L69
             # In CDash, ensure that
             # Settings->Project->Miscellaneous->File upload quota > 0.
-            file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/redmine.url"
-               "http://rtt.lanl.gov/redmine" )
+            #file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/redmine.url"
+            #   "http://rtt.lanl.gov/redmine" )
             ctest_upload( FILES
-              "${CMAKE_CURRENT_BINARY_DIR}/redmine.url"
+            #  "${CMAKE_CURRENT_BINARY_DIR}/redmine.url"
               "${CTEST_BINARY_DIRECTORY}/lines-of-code.log"
               "${CTEST_BINARY_DIRECTORY}/lines-of-code-notest.log" )
 
@@ -719,18 +771,28 @@ covdir -o ${CTEST_BINARY_DIRECTORY}/covdir.log")
         "-q --tool=memcheck --leak-check=full --trace-children=yes --gen-suppressions=all ${valgrind_suppress_option}" )
     endif()
     message(" CTEST_MEMORYCHECK_COMMAND_OPTIONS = ${CTEST_MEMORYCHECK_COMMAND_OPTIONS}")
-    message( "ctest_memcheck( SCHEDULE_RANDOM ON
-                EXCLUDE_LABEL nomemcheck )")
-    ctest_memcheck(
-      SCHEDULE_RANDOM ON
-      EXCLUDE_LABEL "nomemcheck")
+
+    set( ctest_memcheck_options "SCHEDULE_RANDOM ON" )
+    string( APPEND ctest_memcheck_options " PARALLEL_LEVEL ${num_test_procs}" )
+    string( APPEND ctest_memcheck_options " EXCLUDE_LABEL nomemcheck")
+
+    # if we are running on a machine that openly shares resources, use the
+    # TEST_LOAD feature to limit the number of cores used while testing. For
+    # machines that run schedulers, the whole allocation is available so there
+    # is no need to limit the load.
+    if( "${CTEST_SITE}" MATCHES "ccscs" )
+      string( APPEND ctest_memcheck_options " TEST_LOAD ${max_system_load}" )
+    endif()
+    message( "ctest_memcheck( ${ctest_memcheck_options} )" )
+    separate_arguments( ctest_memcheck_options )
+    ctest_memcheck( ${ctest_memcheck_options} )
   endif()
 endmacro(process_cc_or_da)
 
 # ------------------------------------------------------------
 # Special default settings for a couple of platforms
 #
-# Sets DRACO_DIR
+# Sets ${dep_pkg}_DIR (e.g.: DRACO_DIR, or CORE_DIR)
 # ------------------------------------------------------------
 macro(set_pkg_work_dir this_pkg dep_pkg)
 
@@ -738,50 +800,49 @@ macro(set_pkg_work_dir this_pkg dep_pkg)
   # Assume that draco_work_dir is parallel to our current location, but only
   # replace the directory name preceeding the dashboard name.
   file( TO_CMAKE_PATH "$ENV{work_dir}" work_dir )
-  string( REGEX REPLACE "${this_pkg}[/\\](Nightly|Experimental|Continuous)" "${dep_pkg}/\\1"
-    ${dep_pkg}_work_dir ${work_dir} )
+  file( TO_CMAKE_PATH "$ENV{${dep_pkg_caps}_DIR}" ${dep_pkg_caps}_DIR )
+  string( REGEX REPLACE "${this_pkg}[/\\](Nightly|Experimental|Continuous)"
+    "${dep_pkg}/\\1" ${dep_pkg}_work_dir ${work_dir} )
 
   # If this is a special build, link to the normal Debug/Release Draco files:
-  if( "${dep_pkg}" MATCHES "draco" )
-    # coverage  build -> debug   version of Draco
-    # nr        build -> release version of Draco
-    # perfbench build -> release version of Draco
-    # string( REPLACE "Coverage" "Debug"  ${dep_pkg}_work_dir ${${dep_pkg}_work_dir} )
-    string( REPLACE "intel-nr"        "icpc" ${dep_pkg}_work_dir ${${dep_pkg}_work_dir} )
-    string( REPLACE "intel-perfbench" "icpc" ${dep_pkg}_work_dir ${${dep_pkg}_work_dir} )
-    # string( REPLACE "-belosmods"      ""     ${dep_pkg}_work_dir ${${dep_pkg}_work_dir} )
+  #
+  # J/C directory       Draco directory
+  # --------------      -----------------
+  # *-nr-*              *-*
+  # *-vtest-*           *-*
+  # *-perfbench-*       *-*
+  # *-knl-perfbench-*   *-knl-*
 
-    if( "${this_pkg}" MATCHES "jayenne" )
-      # If this is jayenne, we might be building a pull request. Replace the PR
-      # number in the path with '-develop' before looking for draco.
-      string( REGEX REPLACE "(Nightly|Experimental|Continuous)_(.*)(-pr[0-9]+)/" "\\1_\\2-develop/"
-        ${dep_pkg}_work_dir ${${dep_pkg}_work_dir} )
-    endif()
+  # not any ${extraparam} since many map to draco builds that have the same
+  # ${extraparam}.  For example: *-newtools-*.
+  foreach( extraparam nr perfbench vtest )
+    string( REGEX REPLACE "[-_]${extraparam}[-_]" "-" ${dep_pkg}_work_dir
+      ${${dep_pkg}_work_dir} )
+  endforeach()
 
-    if( "${this_pkg}" MATCHES "capsaicin" )
-      # Probably building capsaicin, append '-develop' when looking for draco.
-      string( REGEX REPLACE "(Nightly|Experimental|Continuous)_(.*)/" "\\1_\\2-develop/"
-        ${dep_pkg}_work_dir ${${dep_pkg}_work_dir} )
-    endif()
-  endif()
+  # If this is jayenne, we might be building a pull request. Replace the PR
+  # number in the path with '-develop' before looking for draco.
+  string( REGEX REPLACE "(Nightly|Experimental|Continuous)_(.*)(-pr[0-9]+)/"
+    "\\1_\\2-develop/" ${dep_pkg}_work_dir ${${dep_pkg}_work_dir} )
 
   find_file( ${dep_pkg}_target_dir
-    NAMES README.${dep_pkg}
+    NAMES README.${dep_pkg} README.md
     HINTS
-    # if DRACO_DIR is defined, use it.
-    $ENV{DRACO_DIR}
-    # Try a path parallel to the work_dir
-    ${${dep_pkg}_work_dir}/target
+      # if DRACO_DIR or CORE_DIR is defined, use it.
+      ${${dep_pkg_caps}_DIR}
+      # Try a path parallel to the work_dir
+      ${${dep_pkg}_work_dir}/target
+    NO_DEFAULT_PATH
   )
-
   if( NOT EXISTS ${${dep_pkg}_target_dir} )
-    message( FATAL_ERROR
-      "Could not locate the ${dep_pkg} installation directory.
+    message( FATAL_ERROR "
+      Could not locate the ${dep_pkg} installation directory.
       ${dep_pkg}_target_dir = ${${dep_pkg}_target_dir}
       ${dep_pkg}_work_dir   = ${${dep_pkg}_work_dir}")
   endif()
 
   get_filename_component( ${dep_pkg_caps}_DIR ${${dep_pkg}_target_dir} PATH )
+  unset( dep_pkg_caps )
 
 endmacro(set_pkg_work_dir)
 

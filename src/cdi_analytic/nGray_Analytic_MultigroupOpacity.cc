@@ -4,11 +4,8 @@
  * \author Thomas M. Evans
  * \date   Tue Nov 13 11:19:59 2001
  * \brief  nGray_Analytic_MultigroupOpacity class member definitions.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "nGray_Analytic_MultigroupOpacity.hh"
@@ -30,17 +27,15 @@ namespace rtt_cdi_analytic {
  * rtt_cdi::Reaction argument.
  *
  * The group structure (in keV) must be provided by the groups argument.  The
- * number of Analytic_Opacity_Model objects given in the models argument must
+ * number of Analytic_Opacity_Model objects given in the models argument must 
  * be equal to the number of groups.
  *
  * \param groups vector containing the group boundaries in keV from lowest to
- * highest
- *
- * \param models vector containing SPs to Analytic_Model derived types for
- * each group, the size should be groups.size() - 1
- *
+ *        highest
+ * \param models vector containing shared_ptrs to Analytic_Model derived types
+ *        for each group, the size should be groups.size() - 1
  * \param reaction_in rtt_cdi::Reaction type (enumeration)
- *
+ * \param model_in Enum specifying CDI model.
  */
 nGray_Analytic_MultigroupOpacity::nGray_Analytic_MultigroupOpacity(
     const sf_double &groups, const sf_Analytic_Model &models,
@@ -55,7 +50,7 @@ nGray_Analytic_MultigroupOpacity::nGray_Analytic_MultigroupOpacity(
 //---------------------------------------------------------------------------//
 /*!
  * \brief Unpacking constructor.
- * 
+ *
  * This constructor rebuilds and nGray_Analytic_MultigroupOpacity from a
  * vector<char> that was created by a call to pack().  It can only rebuild
  * Analytic_Model types that have been registered in the
@@ -65,9 +60,7 @@ nGray_Analytic_MultigroupOpacity::nGray_Analytic_MultigroupOpacity(
     const sf_char &packed)
     : Analytic_MultigroupOpacity(packed), group_models() {
   // get the number of group boundaries
-  sf_double const &group_boundaries = getGroupBoundaries();
-  int ngrp_bounds = group_boundaries.size();
-  int num_groups = ngrp_bounds - 1;
+  size_t const num_groups = getGroupBoundaries().size() - 1;
   unsigned const base_size = Analytic_MultigroupOpacity::packed_size();
 
   // make an unpacker
@@ -115,14 +108,14 @@ nGray_Analytic_MultigroupOpacity::nGray_Analytic_MultigroupOpacity(
     Ensure(group_models[i]);
   }
 
-  Ensure(group_boundaries.size() - 1 == group_models.size());
+  Ensure(num_groups == group_models.size());
 }
 
 //---------------------------------------------------------------------------//
 // OPACITY INTERFACE FUNCTIONS
 //---------------------------------------------------------------------------//
 /*!
- * \brief Return the group opacities given a scalar temperature and density. 
+ * \brief Return the group opacities given a scalar temperature and density.
  *
  * Given a scalar temperature and density, return the group opacities
  * (vector<double>) for the reaction type specified by the constructor.  The
@@ -170,7 +163,7 @@ nGray_Analytic_MultigroupOpacity::getOpacity(double temperature,
  *
  * The field type for temperatures is an std::vector.
  *
- * \param temperature std::vector of material temperatures in keV 
+ * \param temperature std::vector of material temperatures in keV
  *
  * \param density material density in g/cm^3
  *
@@ -219,7 +212,7 @@ nGray_Analytic_MultigroupOpacity::getOpacity(const sf_double &temperature,
  *
  * The field type for density is an std::vector.
  *
- * \param temperature in keV 
+ * \param temperature in keV
  *
  * \param density std::vector of material densities in g/cm^3
  *
@@ -280,14 +273,15 @@ nGray_Analytic_MultigroupOpacity::pack() const {
     Check(group_models[i]);
 
     models[i] = group_models[i]->pack();
-    num_bytes_models += models[i].size();
+    Check(num_bytes_models + models[i].size() < INT_MAX);
+    num_bytes_models += static_cast<int>(models[i].size());
   }
 
   // now add up the total size; number of groups + 1 int for number of
   // groups, number of models + size in each model + models, 1 int for
   // reaction type, 1 int for model type
-  int base_size = packed.size();
-  int size = models.size() * sizeof(int) + num_bytes_models;
+  size_t const base_size = packed.size();
+  size_t const size = models.size() * sizeof(int) + num_bytes_models;
 
   // extend the char array
   packed.resize(size + base_size);
@@ -312,5 +306,5 @@ nGray_Analytic_MultigroupOpacity::pack() const {
 } // end namespace rtt_cdi_analytic
 
 //---------------------------------------------------------------------------//
-//                              end of nGray_Analytic_MultigroupOpacity.cc
+// end of nGray_Analytic_MultigroupOpacity.cc
 //---------------------------------------------------------------------------//

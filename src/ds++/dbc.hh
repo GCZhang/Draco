@@ -4,16 +4,14 @@
  * \author Kent G. Budge
  * \date   Wed Jan 22 15:18:23 MST 2003
  * \brief  Extensions to the STL algorithm library
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
  *         All rights reserved.
  *
- * This header defines several function templates that perform common
- * numerical operations not standardized in the STL algorithm header. It also
- * defines some useful STL-style predicates. These predicates are
- * particularly useful for writing Design by Contract assertions.
+ * This header defines several function templates that perform common numerical
+ * operations not standardized in the STL algorithm header. It also defines some
+ * useful STL-style predicates. These predicates are particularly useful for
+ * writing Design by Contract assertions.
  */
-//---------------------------------------------------------------------------//
-// $Id$
 //---------------------------------------------------------------------------//
 
 #ifndef rtt_dsxx_dbc_hh
@@ -45,7 +43,7 @@ template <typename Ordered_Group_Element>
 inline Ordered_Group_Element dim(Ordered_Group_Element a,
                                  Ordered_Group_Element b);
 
-} // ane of namespace rtt_dsxx
+} // namespace rtt_dsxx
 
 // Use implicit instantiation for these templatized functions
 #include "dbc.i.hh"

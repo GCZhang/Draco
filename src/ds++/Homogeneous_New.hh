@@ -4,11 +4,8 @@
  * \author Kent Budge
  * \date   Tue Nov 28 08:27:37 2006
  * \brief  Definition of class Homogeneous_New
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef dsxx_Homogeneous_New_hh

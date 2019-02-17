@@ -3,11 +3,8 @@
  * \file   device/GPU_Module.hh
  * \author Kelly (KT) Thompson
  * \brief  Define class GPU_Module
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef device_GPU_Module_hh
@@ -32,9 +29,8 @@ namespace rtt_device {
  * \code
  *     cout << "Hello, world." << endl;
  * \endcode
- */
-/*! 
- * \example device/test/gpu_hello_driver_api.cc
+ *
+ * \sa device/test/gpu_hello_driver_api.cc
  */
 //===========================================================================//
 

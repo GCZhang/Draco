@@ -4,15 +4,11 @@
  *  \brief  Provide a single place where physical constants (pi, speed of
  *          light, etc) are defined for the local UnitSystem.
  *  \date   Mon Nov 10 09:24:55 2003
- *  \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *          All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ *  \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *          All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "PhysicalConstants.hh"
-
 #include "PhysicalConstantsSI.hh"
 #include "ds++/Soft_Equivalence.hh"
 #include <iomanip>
@@ -20,6 +16,7 @@
 
 namespace rtt_units {
 
+//----------------------------------------------------------------------------//
 /*!
  * \brief Default constructor provides physical constants with SI units (kg,
  *        m, seconds, degree K, amp, radian, mole).
@@ -34,14 +31,16 @@ PhysicalConstants::PhysicalConstants()
       d_faradayConstant(faradayConstantSI),
       d_permeabilityOfVacuum(permeabilityOfVacuumSI),
       d_permittivityOfFreeSpace(permittivityOfFreeSpaceSI),
+      d_classicalElectronRadius(classicalElectronRadiusSI),
       d_electronMass(electronMassSI), d_protonMass(protonMassSI) {
   // empty
 }
 
+//----------------------------------------------------------------------------//
 /*!
  * \brief Constuctor that creates a set of PhysicalConstants using the
  *        provided rtt_units::UnitSystem.
- * \param u A complete UnitSystem.  PhysicalConstants will be formed and
+ * \param[in] u A complete UnitSystem.  PhysicalConstants will be formed and
  *        returned using these units (CGS, SI, etc.)
  * \return A PhysicalConstants object.
  */
@@ -59,20 +58,10 @@ PhysicalConstants::PhysicalConstants(UnitSystem const &u)
       d_permeabilityOfVacuum(permeabilityOfVacuumSI / u.L()),
       d_permittivityOfFreeSpace(1.0 / d_permeabilityOfVacuum /
                                 std::pow(d_cLight, 2)),
+      d_classicalElectronRadius(classicalElectronRadiusSI * u.L()),
       d_electronMass(electronMassSI * u.M()),
       d_protonMass(protonMassSI * u.M()) {
   // empty
-
-  // std::cout << std::setprecision(16) << std::scientific
-  //     << "\nu.e() = " << u.e()
-  //     << "\nu.t() = " << u.t()
-  //     << "\nu.T() = " << u.T()
-  //     << "\nu.v() = " << u.v()
-  //     << "\nu.p() = " << u.p()
-  //     << "\nu.L() = " << u.L()
-  //     << "\nu.M() = " << u.M()
-  //     << "\nu.a() = " << u.a()
-  //     << std::endl;
 }
 
 } // end namespace rtt_units

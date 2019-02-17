@@ -3,15 +3,9 @@
 ;; file   : draco-mode.el
 ;; Author : Kelly Thompson
 ;; Created: 30 Nov 2004
-;;
 ;; Brief  : ELisp package for making Draco related stuff easier.
-;;
-;; Copyright (C) 2016 Los Alamos National Security, LLC
-;;
-;; Version: 0.0.1
-;;
-;; $Id$
-;;============================================================
+;; Note   : Copyright (C) 2016-2019 Triad National Security, LLC.
+;;======================================================================
 ;; Commentary:
 ;;
 ;; - Customize the variable ccs4-env-dirs
@@ -34,8 +28,6 @@
 ;;   (add-hook 'font-lock-mode-hook 'my-draco-font-lock-hook)
 ;;
 ;;   This will add the Draco keywords to c-mode and c++-mode only.
-;;
-
 ;;============================================================
 ;; Front matter and variables
 
@@ -245,7 +237,8 @@ to anything else will generate errors."
    ;; DRACO Unit testing - One shot keywords that take no arguments
    (list
     ;; Match single keyword
-    "\\(FAILMSG\\|ITFAILS\\|PASSMSG\\)\\>"
+    "\\(FAILMSG\\|FAIL_IF\\|FAIL_IF_NOT\\|ITFAILS\\|PASSMSG\\)\\>"
+;;    "\\(FAILMSG\\|FAIL_IF\\|FAIL_IF_NOT\\|ITFAILS\\|PASSMSG\\)\\>"
     '(0 font-lock-preprocessor-face prepend))
 
    ;; Draco extra C++ typenames
@@ -456,13 +449,13 @@ function or method. Width is set by draco-code-comment-width.
   (interactive)
   (beginning-of-line)
   (insert "//")
-  (insert (make-string (- draco-code-comment-width 5) ?-))
+  (insert (make-string (- draco-code-comment-width 4) ?-))
   (insert "//\n")
   (insert "/*! \n")
   (insert " * \\brief \n")
   (insert " * \n")
   (insert " * \\param[in] name description\n")
-  (insert " * \\param[inout] name description\n")
+  (insert " * \\param[in,out] name description\n")
   (insert " * \\param[out] name description\n")
   (insert " * \\return description\n")
   (insert " */\n")
@@ -481,13 +474,13 @@ by draco-code-comment-width.
 "
   (interactive)
   (insert "//")
-  (insert (make-string (- draco-code-comment-width 5) ?=))
+  (insert (make-string (- draco-code-comment-width 4) ?=))
   (insert "//\n")
   (insert "/*!\n")
   (insert " * \\class \n")
   (insert " * \\brief \n")
   (insert "//")
-  (insert (make-string (- draco-code-comment-width 5) ?=))
+  (insert (make-string (- draco-code-comment-width 4) ?=))
   (insert "//\n")
   (previous-line 2)
   (end-of-line)
@@ -498,7 +491,7 @@ by draco-code-comment-width.
   (interactive)
   (beginning-of-line)
   (insert "//")
-  (insert (make-string (- draco-code-comment-width 5) ?-))
+  (insert (make-string (- draco-code-comment-width 4) ?-))
   (insert "//\n")
 )
 
@@ -689,7 +682,7 @@ c-----------------------------------------------------------------------------c
   (interactive)
   (beginning-of-line)
   (insert "/*")
-  (insert (make-string (- draco-code-comment-width 5) ?-))
+  (insert (make-string (- draco-code-comment-width 4) ?-))
   (insert "*/\n")
   (end-of-line)
 )
@@ -704,21 +697,13 @@ c-----------------------------------------------------------------------------c
   (interactive)
   (beginning-of-line)
   (insert "/*")
-  (insert (make-string (- draco-code-comment-width 5) ?-))
+  (insert (make-string (- draco-code-comment-width 4) ?-))
   (insert "*/\n/* \n/*")
-  (insert (make-string (- draco-code-comment-width 5) ?-))
+  (insert (make-string (- draco-code-comment-width 4) ?-))
   (insert "*/\n\n")
   (previous-line 3)
   (end-of-line)
 )
-
-;(defun draco-cc-comment-divider ()
-;"Insert a C++ style divider."
-;  (interactive)
-;  (beginning-of-line)
-;  (insert "//---------------------------------------------------------------------------//\n")
-;  (end-of-line)
-;)
 
 (defun draco-html-comment-divider ()
 "Insert a HTML style divider."
@@ -736,9 +721,9 @@ c-----------------------------------------------------------------------------c
   (interactive)
   (beginning-of-line)
   (insert "//")
-  (insert (make-string (- draco-code-comment-width 5) ?-))
+  (insert (make-string (- draco-code-comment-width 4) ?-))
   (insert "//\n// \n//")
-  (insert (make-string (- draco-code-comment-width 5) ?-))
+  (insert (make-string (- draco-code-comment-width 4) ?-))
   (insert "//\n\n")
   (previous-line 3)
   (end-of-line)

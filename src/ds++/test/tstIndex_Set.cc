@@ -3,12 +3,8 @@
  * \file   ds++/test/tstIndex_Set.cc
  * \author Mike Buksas
  * \date   Thu Feb  2 13:46:36 2006
- * \brief  
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "ds++/Index_Set.hh"

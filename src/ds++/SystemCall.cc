@@ -1,13 +1,10 @@
 //----------------------------------*-C++-*----------------------------------//
 /*!
- * \file   ds++/SystemCall.cc
- * \brief  Implementation for the Draco wrapper for system calls. This
- routine attempts to hide differences between Unix/Windows system
- calls.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- * \version $Id$
- */
+ * \file  ds++/SystemCall.cc
+ * \brief Implementation for the Draco wrapper for system calls. This routine
+ *        attempts to hide differences between Unix/Windows system calls.
+ * \note  Copyright (C) 2016-2019 Triad National Security, LLC.
+ *        All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "SystemCall.hh"
@@ -17,7 +14,7 @@
 #include <cstdio>  // remove()
 #include <cstdlib> // _fullpath
 #include <cstring> // strncpy()
-#ifdef UNIX
+#if defined UNIX || defined MINGW
 #include <sys/param.h> // MAXPATHLEN
 #include <unistd.h>    // gethostname
 #endif
@@ -39,16 +36,16 @@ namespace rtt_dsxx {
 /*! \brief Wrapper for system dependent hostname call.
  *
  * Windows:
- *     HOST_NAME_MAX set to MAX_COMPUTERNAME_LENGTH in config.h
+ *     \c HOST_NAME_MAX set to \c MAX_COMPUTERNAME_LENGTH in config.h
  *
  * Catamount systems:
- *     HOST_NAME_MAX hard coded by CMake in config.h
+ *     \c HOST_NAME_MAX hard coded by CMake in config.h
  *
  * Unix/Linux:
- *     HOST_NAME_MAX loaded from <climit>
+ *     \c HOST_NAME_MAX loaded from \<climit\>
  *
  * Mac OSX:
- *     HOST_NAME_MAX set to _POSIX_HOST_NAME_MAX in config.h
+ *     \c HOST_NAME_MAX set to \c _POSIX_HOST_NAME_MAX in config.h
  */
 std::string draco_gethostname(void) {
 // Windows: gethostname from <winsock2.h>
@@ -58,7 +55,8 @@ std::string draco_gethostname(void) {
   if (err)
     strncpy(hostname, "gethostname() failed", HOST_NAME_MAX);
   return std::string(hostname);
-#endif
+
+#else
 
 // Linux: gethostname from <unistd.h>
 #ifdef HAVE_GETHOSTNAME
@@ -72,8 +70,8 @@ std::string draco_gethostname(void) {
 #else
   return std::string("Host (unknown)");
 #endif
-
-} // draco_hostname
+#endif
+} // draco_gethostname
 
 //---------------------------------------------------------------------------//
 /*! \brief Wrapper for system dependent pid call..
@@ -177,7 +175,7 @@ draco_getstat::draco_getstat(std::string const &fqName)
 //---------------------------------------------------------------------------//
 //! Is this a regular file?
 bool draco_getstat::isreg() {
-#if WIN32
+#ifdef WIN32
   bool b = FileInformation.dwFileAttributes & FILE_ATTRIBUTE_NORMAL;
   return filefound && b;
 #else
@@ -189,7 +187,7 @@ bool draco_getstat::isreg() {
 //---------------------------------------------------------------------------//
 //! Is this a directory?
 bool draco_getstat::isdir() {
-#if WIN32
+#ifdef WIN32
   bool b = FileInformation.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
   return filefound && b;
 #else
@@ -200,17 +198,20 @@ bool draco_getstat::isdir() {
 
 //---------------------------------------------------------------------------//
 //! Is a Unix permission bit set?
-bool draco_getstat::has_permission_bit(int mask) {
+#ifdef WIN32
+bool draco_getstat::has_permission_bit(int /*mask*/) {
   Insist(isreg(), "Can only check permission bit for regular files.");
-#if WIN32
   Insist(false,
          "draco_getstat::hsa_permission_bit() not implemented for WIN32");
   return false;
+}
 #else
+bool draco_getstat::has_permission_bit(int mask) {
+  Insist(isreg(), "Can only check permission bit for regular files.");
   // check execute bit (buf.st_mode & 0111)
   return (buf.st_mode & mask);
-#endif
 }
+#endif
 
 //---------------------------------------------------------------------------//
 /*!
@@ -242,9 +243,9 @@ void draco_mkdir(std::string const &path) {
 
   draco_getstat dirInfo(path);
   if (!dirInfo.isdir()) {
-    /*! \note If path contains the location of a directory, it cannot
-         * contain a trailing backslash. If it does, -1 will be returned and
-         * errno will be set to ENOENT. */
+    /*! \note If path contains the location of a directory, it cannot contain a
+     * trailing backslash. If it does, -1 will be returned and errno will be set
+     * to ENOENT. */
     std::string clean_fqName;
     if (path[path.size() - 1] == rtt_dsxx::WinDirSep ||
         path[path.size() - 1] == rtt_dsxx::UnixDirSep)

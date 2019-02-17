@@ -4,11 +4,8 @@
  * \author Kent G. Budge
  * \date   Tue Nov  9 14:34:11 2010
  * \brief  Test the Abstract_Class_Parser template
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "ds++/Release.hh"
@@ -59,17 +56,18 @@ public:
   bool allow_exit() const { return false; }
 
   void check_completeness(Token_Stream &tokens) {
-    if (child_ == SP<Parent>()) {
+    if (child_ == std::shared_ptr<Parent>()) {
       tokens.report_semantic_error("no parent specified");
     }
   }
 
-  SP<Parent> create_object() { return child_; }
+  std::shared_ptr<Parent> create_object() { return child_; }
 
   // STATICS
 
-  static void register_model(string const &keyword,
-                             SP<Parent> parse_function(Token_Stream &)) {
+  static void
+  register_model(string const &keyword,
+                 std::shared_ptr<Parent> parse_function(Token_Stream &)) {
     Abstract_Class_Parser<Parent, get_parse_table_,
                           get_parsed_object_>::register_child(keyword,
                                                               parse_function);
@@ -80,16 +78,16 @@ private:
 
   static Parse_Table &get_parse_table_() { return parse_table_; }
 
-  static SP<Parent> &get_parsed_object_() { return child_; }
+  static std::shared_ptr<Parent> &get_parsed_object_() { return child_; }
 
   // DATA
 
-  static SP<Parent> child_;
+  static std::shared_ptr<Parent> child_;
   static Class_Parse_Table *current_;
   static Parse_Table parse_table_;
 };
 
-SP<Parent> Class_Parse_Table<Parent>::child_;
+std::shared_ptr<Parent> Class_Parse_Table<Parent>::child_;
 Class_Parse_Table<Parent> *Class_Parse_Table<Parent>::current_;
 Parse_Table Class_Parse_Table<Parent>::parse_table_;
 
@@ -97,7 +95,7 @@ Parse_Table Class_Parse_Table<Parent>::parse_table_;
 /*
  * Specialization of the parse_class function for T=Parent
  */
-template <> SP<Parent> parse_class<Parent>(Token_Stream &tokens) {
+template <> std::shared_ptr<Parent> parse_class<Parent>(Token_Stream &tokens) {
   return parse_class_from_table<Class_Parse_Table<Parent>>(tokens);
 }
 
@@ -162,13 +160,14 @@ public:
   Parse_Table const &parse_table() const { return parse_table_; }
 
   void check_completeness(Token_Stream &tokens) {
-    if (parsed_snips_and_snails == -1) {
+    if (rtt_dsxx::soft_equiv(parsed_snips_and_snails, -1.0,
+                             std::numeric_limits<double>::epsilon())) {
       tokens.report_semantic_error("no snips and snails specified");
     }
   }
 
-  SP<Son> create_object() {
-    SP<Son> Result(new Son(parsed_snips_and_snails));
+  std::shared_ptr<Son> create_object() {
+    std::shared_ptr<Son> Result(new Son(parsed_snips_and_snails));
     return Result;
   }
 
@@ -186,7 +185,7 @@ Parse_Table Class_Parse_Table<Son>::parse_table_;
 bool Class_Parse_Table<Son>::parse_table_is_initialized_ = false;
 
 //---------------------------------------------------------------------------//
-template <> SP<Son> parse_class<Son>(Token_Stream &tokens) {
+template <> std::shared_ptr<Son> parse_class<Son>(Token_Stream &tokens) {
   return parse_class_from_table<Class_Parse_Table<Son>>(tokens);
 }
 
@@ -251,13 +250,14 @@ public:
   Parse_Table const &parse_table() const { return parse_table_; }
 
   void check_completeness(Token_Stream &tokens) {
-    if (parsed_sugar_and_spice == -1) {
+    if (rtt_dsxx::soft_equiv(parsed_sugar_and_spice, -1.0,
+                             std::numeric_limits<double>::epsilon())) {
       tokens.report_semantic_error("no sugar and spice specified");
     }
   }
 
-  SP<Daughter> create_object() {
-    SP<Daughter> Result(new Daughter(parsed_sugar_and_spice));
+  std::shared_ptr<Daughter> create_object() {
+    std::shared_ptr<Daughter> Result(new Daughter(parsed_sugar_and_spice));
     return Result;
   }
 
@@ -274,7 +274,8 @@ Parse_Table Class_Parse_Table<Daughter>::parse_table_;
 bool Class_Parse_Table<Daughter>::parse_table_is_initialized_;
 
 //---------------------------------------------------------------------------//
-template <> SP<Daughter> parse_class<Daughter>(Token_Stream &tokens) {
+template <>
+std::shared_ptr<Daughter> parse_class<Daughter>(Token_Stream &tokens) {
   return parse_class_from_table<Class_Parse_Table<Daughter>>(tokens);
 }
 
@@ -282,7 +283,7 @@ template <> SP<Daughter> parse_class<Daughter>(Token_Stream &tokens) {
 
 /* the followingn would typically live in some client file for Parent. */
 
-SP<Parent> parent;
+std::shared_ptr<Parent> parent;
 
 //static
 void parse_parent(Token_Stream &tokens, int) {
@@ -297,9 +298,11 @@ const unsigned number_of_top_keywords = sizeof(top_keywords) / sizeof(Keyword);
 
 Parse_Table top_parse_table(top_keywords, number_of_top_keywords);
 
-SP<Parent> parse_son(Token_Stream &tokens) { return parse_class<Son>(tokens); }
+std::shared_ptr<Parent> parse_son(Token_Stream &tokens) {
+  return parse_class<Son>(tokens);
+}
 
-SP<Parent> parse_daughter(Token_Stream &tokens) {
+std::shared_ptr<Parent> parse_daughter(Token_Stream &tokens) {
   return parse_class<Daughter>(tokens);
 }
 
@@ -321,7 +324,7 @@ void test(UnitTest &ut) {
 
   cout << parent->name() << endl;
 
-  if (tokens.error_count() == 0 && parent != SP<Parent>() &&
+  if (tokens.error_count() == 0 && parent != std::shared_ptr<Parent>() &&
       parent->name() == "son") {
     PASSMSG("Parsed son correctly");
   } else {

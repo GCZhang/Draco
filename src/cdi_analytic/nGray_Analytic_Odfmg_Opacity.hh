@@ -4,9 +4,8 @@
  * \author Thomas M. Evans
  * \date   Tue Nov 13 11:19:59 2001
  * \brief  nGray_Analytic_Odfmg_Opacity class definition.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef __cdi_analytic_nGray_Analytic_Odfmg_Opacity_hh__
@@ -26,12 +25,11 @@ namespace rtt_cdi_analytic {
  */
 //===========================================================================//
 
-class DLL_PUBLIC_cdi_analytic nGray_Analytic_Odfmg_Opacity
-    : public Analytic_Odfmg_Opacity {
+class nGray_Analytic_Odfmg_Opacity : public Analytic_Odfmg_Opacity {
 public:
   // Useful typedefs.
-  typedef rtt_dsxx::SP<Analytic_Opacity_Model> SP_Analytic_Model;
-  typedef rtt_dsxx::SP<const Analytic_Opacity_Model> const_Model;
+  typedef std::shared_ptr<Analytic_Opacity_Model> SP_Analytic_Model;
+  typedef std::shared_ptr<const Analytic_Opacity_Model> const_Model;
   typedef std::vector<SP_Analytic_Model> sf_Analytic_Model;
   typedef std::vector<double> sf_double;
   typedef std::vector<sf_double> vf_double;
@@ -63,16 +61,16 @@ public:
   // >>> INTERFACE SPECIFIED BY rtt_cdi::OdfmgOpacity
 
   /*!
-     * \brief Opacity accessor that returns a 2-D vector of opacities (
-     *     groups * bands ) that correspond to the
-     *     provided temperature and density.
-     *
-     * \param targetTemperature The temperature value for which an
-     *     opacity value is being requested.
-     * \param targetDensity The density value for which an opacity
-     *     value is being requested.
-     * \return A vector of opacities.
-     */
+   * \brief Opacity accessor that returns a 2-D vector of opacities
+   *        (groups*bands) that correspond to the provided temperature and
+   *        density.
+   *
+   * \param targetTemperature The temperature value for which an opacity value
+   *             is being requested.
+   * \param targetDensity The density value for which an opacity value is being
+   *             requested.
+   * \return A vector of opacities.
+   */
   std::vector<std::vector<double>> getOpacity(double targetTemperature,
                                               double targetDensity) const;
 
@@ -92,20 +90,18 @@ public:
 };
 
 //---------------------------------------------------------------------------//
-/*!
- * \brief Return a string describing the opacity model.
- */
+//! Return a string describing the opacity model.
 nGray_Analytic_Odfmg_Opacity::std_string
 nGray_Analytic_Odfmg_Opacity::getDataDescriptor() const {
   std_string descriptor;
 
-  rtt_cdi::Reaction const reaction = getReactionType();
+  rtt_cdi::Reaction const rxn = getReactionType();
 
-  if (reaction == rtt_cdi::TOTAL)
+  if (rxn == rtt_cdi::TOTAL)
     descriptor = "Analytic Odfmg Total";
-  else if (reaction == rtt_cdi::ABSORPTION)
+  else if (rxn == rtt_cdi::ABSORPTION)
     descriptor = "Analytic Odfmg Absorption";
-  else if (reaction == rtt_cdi::SCATTERING)
+  else if (rxn == rtt_cdi::SCATTERING)
     descriptor = "Analytic Odfmg Scattering";
   else
     Insist(0, "Invalid analytic multigroup model opacity!");

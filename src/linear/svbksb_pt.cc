@@ -4,11 +4,8 @@
  * \author Kent Budge
  * \date   Tue Aug 10 13:08:03 2004
  * \brief  Specializations of svbksb
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "svbksb.i.hh"

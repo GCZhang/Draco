@@ -3,10 +3,10 @@
  * \file   roots/test/tstfdjac.cc
  * \author Kent Budge
  * \date   Mon Aug  9 13:39:20 2004
- * \note   Copyright 2016 Los Alamos National Security, LLC
+ * \note   Copyright 2016-2019 Triad National Security, LLC
  */
 //---------------------------------------------------------------------------//
-// $Id$
+
 //---------------------------------------------------------------------------//
 
 #include "ds++/Release.hh"

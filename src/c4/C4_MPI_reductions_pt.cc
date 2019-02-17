@@ -4,18 +4,17 @@
  * \author Thomas M. Evans
  * \date   Mon Mar 25 11:12:35 2002
  * \brief  C4 MPI global reduction instantiations.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
-#include <c4/config.h>
+#include "c4/config.h"
 
 #ifdef C4_MPI
-
 #include "C4_MPI.t.hh"
+#else
+#include "C4_Serial.t.hh"
+#endif
 
 namespace rtt_c4 {
 
@@ -35,6 +34,25 @@ template DLL_PUBLIC_c4 void global_sum<long double>(long double &);
 template DLL_PUBLIC_c4 void global_sum<long long>(long long &);
 template DLL_PUBLIC_c4 void
 global_sum<unsigned long long>(unsigned long long &);
+
+template DLL_PUBLIC_c4 void global_isum<short>(short &, short &, C4_Req &);
+template DLL_PUBLIC_c4 void
+global_isum<unsigned short>(unsigned short &, unsigned short &, C4_Req &);
+template DLL_PUBLIC_c4 void global_isum<int>(int &, int &, C4_Req &);
+template DLL_PUBLIC_c4 void global_isum<unsigned int>(unsigned int &,
+                                                      unsigned int &, C4_Req &);
+template DLL_PUBLIC_c4 void global_isum<long>(long &, long &, C4_Req &);
+template DLL_PUBLIC_c4 void
+global_isum<unsigned long>(unsigned long &, unsigned long &, C4_Req &);
+template DLL_PUBLIC_c4 void global_isum<float>(float &, float &, C4_Req &);
+template DLL_PUBLIC_c4 void global_isum<double>(double &, double &, C4_Req &);
+template DLL_PUBLIC_c4 void global_isum<long double>(long double &,
+                                                     long double &, C4_Req &);
+template DLL_PUBLIC_c4 void global_isum<long long>(long long &, long long &,
+                                                   C4_Req &);
+template DLL_PUBLIC_c4 void
+global_isum<unsigned long long>(unsigned long long &, unsigned long long &,
+                                C4_Req &);
 
 template DLL_PUBLIC_c4 void global_prod<short>(short &);
 template DLL_PUBLIC_c4 void global_prod<unsigned short>(unsigned short &);
@@ -127,8 +145,6 @@ template DLL_PUBLIC_c4 void global_min<unsigned long long>(unsigned long long *,
                                                            int);
 
 } // end namespace rtt_c4
-
-#endif // C4_MPI
 
 //---------------------------------------------------------------------------//
 // end of C4_MPI_reductions_pt.cc

@@ -4,16 +4,15 @@
  * \author Kent Budge
  * \date   Wed Aug 11 08:07:04 2004
  * \brief  Compute the Jacobian of a nonlinear system of equations
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef roots_fdjac_hh
 #define roots_fdjac_hh
 
+#include "ds++/Assert.hh"
+#include "ds++/Soft_Equivalence.hh"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -22,7 +21,7 @@
 namespace rtt_roots {
 
 //---------------------------------------------------------------------------//
-/*! 
+/*!
  * \brief Calculate the Jacobian of a nonlinear system of equations.
  *
  * This procedure computes the Jacobian using a forward-difference
@@ -30,17 +29,16 @@ namespace rtt_roots {
  *
  * \arg \a Field A field type
  * \arg \a Function_N_to_N A function representing a set of N functions of N
- * variables. 
- * 
+ *         variables.
+ *
  * \param x Point at which the Jacobian is to be evaluated.
  * \param fvec Residuals of the equations at x.
  * \param df On return, contains the Jacobian. The ordering is that df[i+n*j]
- * contains the jth derivative of the ith residual.
+ *         contains the jth derivative of the ith residual.
  * \param vecfunc Multifunctor returning the residuals of the nonlinear
- * equations. 
+ *         equations.
  *
  * \pre \c x.size()==fvec.size()
- *
  * \post \c df.size()==square(x.size())
  */
 
@@ -49,14 +47,14 @@ void fdjac(const std::vector<Field> &x, const std::vector<Field> &fvec,
            std::vector<Field> &df, const Function_N_to_N &vecfunc) {
   Require(x.size() == fvec.size());
 
+  using std::abs;
   using std::numeric_limits;
   using std::vector;
-  using std::abs;
 
   // Square root of the machine precision
   static const double EPS = sqrt(numeric_limits<Field>::epsilon());
 
-  const unsigned n = x.size();
+  const size_t n = x.size();
 
   df.resize(n * n);
 
@@ -65,7 +63,7 @@ void fdjac(const std::vector<Field> &x, const std::vector<Field> &fvec,
   for (unsigned j = 0; j < n; j++) {
     Field temp = xt[j];
     Field h = EPS * abs(temp);
-    if (h == 0)
+    if (std::abs(h) < std::numeric_limits<float>::min())
       h = EPS;
     xt[j] = temp + h;
     h = xt[j] - temp;

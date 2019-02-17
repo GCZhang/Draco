@@ -3,10 +3,8 @@
 # author Kelly Thompson
 # brief  Instructions for building a C++ main that links against an
 #        F90 library and uses ISO_C_BINDING.
-# note   Copyright (C) 2016 Los Alamos National Security, LLC.
+# note   Copyright (C) 2016-2019 Triad National Security, LLC.
 #        All rights reserved
-# ---------------------------------------------------------------------------- #
-# $Id$
 #------------------------------------------------------------------------------#
 project( FortranChecks_test CXX )
 
@@ -25,10 +23,10 @@ set( ptest_sources
 # ---------------------------------------------------------------------------- #
 # Directories to search for include directives
 # ---------------------------------------------------------------------------- #
-include_directories(
-  ${PROJECT_SOURCE_DIR}      # headers for tests
-  ${Draco_SOURCE_DIR}/src    # headers for ds++
-  )
+# include_directories(
+#   ${PROJECT_SOURCE_DIR}      # headers for tests
+#   ${Draco_SOURCE_DIR}/src    # headers for ds++
+#   )
 
 # ---------------------------------------------------------------------------- #
 # Build Unit tests
@@ -51,7 +49,10 @@ if( MSVC )
 endif()
 
 # Create the test.
-set( test_deps "Lib_dsxx;Lib_FC_f90sub;Lib_FC_Derived_Type" )
+set( test_deps "Lib_FC_f90sub" )
+
+#include(print_target_properties)
+#print_targets_properties( "Lib_FC_f90sub;Lib_FC_Derived_Type;Lib_dsxx" )
 
 # When cross-compiling with '-mmic', rpaths for libraries built from
 # Fortran code don't appear to be reported to the icpc linker.  As a

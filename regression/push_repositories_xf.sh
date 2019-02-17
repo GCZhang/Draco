@@ -3,18 +3,42 @@
 ## File  : regression/push_repositories_xf.sh
 ## Date  : Tuesday, May 31, 2016, 14:48 pm
 ## Author: Kelly Thompson
-## Note  : Copyright (C) 2016, Los Alamos National Security, LLC.
+## Note  : Copyright (C) 2016-2019, Triad National Security, LLC.
 ##         All rights are reserved.
 ##---------------------------------------------------------------------------##
 
+# switch to group 'ccsrad' and set umask
+if [[ $(id -gn) != ccsrad ]]; then
+  exec sg ccsrad "$0 $*"
+fi
+umask 0007
+
+# Locate the directory that this script is located in:
+scriptdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Redirect all output to a log file.
+timestamp=`date +%Y%m%d-%H%M`
+target="`uname -n | sed -e s/[.].*//`"
+logdir="$( cd $scriptdir/../../logs && pwd )"
+logfile=$logdir/push_repositories_xf-$target-$timestamp.log
+exec > $logfile
+exec 2>&1
+
+# import some bash functions
+source $scriptdir/scripts/common.sh
+
+echo -e "Executing $0 $*...\n"
+echo "Group: `id -gn`"
+echo -e "umask: `umask` \n"
+
+#------------------------------------------------------------------------------#
 # Q: How do I create a keytab that works with transfer 2.0
 # A: See
-#    https://rtt.lanl.gov/redmine/projects/draco/wiki/Kelly_Thompson#Generating-keytab-file-that-works-with-transfer-20
+#    https://rtt.lanl.gov/redmine/projects/draco/wiki/Kelly_Thompson
 #    or see the comments at the end of this file.
 
 # When kellyt runs this as a crontab, a special kerberos key must be used.
-user=`whoami`
-if test $user = "kellyt"; then
+if [[ $USER == "kellyt" ]] ; then
     # Use a different cache location to avoid destroying any active user's
     # kerberos.
     export KRB5CCNAME=/tmp/regress_kerb_cache
@@ -23,104 +47,59 @@ if test $user = "kellyt"; then
     kinit -l 1h -kt $HOME/.ssh/xfkeytab transfer/${USER}push@lanl.gov
 fi
 
-# Helpful functions:
-die () { echo "FATAL ERROR: $1"; exit 1;}
-
-run () {
-   echo $1
-   if ! test $dry_run; then
-      eval $1
-   fi
-}
-
 # Sanity check
-if test `klist -l | grep -c $user` = 0; then
+if test `klist -l | grep -c $USER` = 0; then
     die "You must have an active kerberos ticket to run this script."
 fi
 
-# Working directory
-if test -d /ccs/codes/radtran/svn; then
-  run "cd /ccs/codes/radtran/svn"
-else
-  die "SVN root directory not found. Expected to find /ccs/codes/radtran/svn."
-fi
-
-# Repositories to push
-repos="capsaicin"
-
-#
-for repo in $repos; do
-   # Remove old hotcopy files/directories.
-   if test -f ${repo}.hotcopy.tar; then
-      run "rm -f ${repo}.hotcopy.tar"
-   fi
-   if test -d ${repo}.hotcopy; then
-      run "rm -rf ${repo}.hotcopy"
-   fi
-   # Generate a repo hotcopy
-   run "svnadmin hotcopy $repo ${repo}.hotcopy"
-
-   # Tar it up and push via mercury.
-   run "tar -cvf ${repo}.hotcopy.tar ${repo}.hotcopy"
-
-   # Transfer the file via transfer.lanl.gov
-   run "scp ${repo}.hotcopy.tar red@transfer.lanl.gov:"
-
-   # Ensure the new files have group rwX permissions.
-   run "chgrp -R draco ${repo}.hotcopy.tar ${repo}.hotcopy"
-   run "chmod -R g+rwX,o=g-w ${repo}.hotcopy.tar ${repo}.hotcopy"
-
-done
-
 #------------------------------------------------------------------------------#
-# Also clone the github repository and push it along with the svn
-# repositories.
+# Clone the github and gitlab repositories and push them to the red.
 
-gitdir=/ccs/codes/radtran/git
+gitroot=/ccs/codes/radtran/git.${target}
 
-if test -d $gitdir; then
-  run "cd $gitdir"
+if [[ -d $gitroot ]]; then
+  run "cd $gitroot"
 else
-  die "GIT root directory not found. Expected to find $gitdir."
+  die "GIT root directory not found. Expected to find $gitroot."
 fi
 
-repos="Draco.git jayenne.git"
+# List of repositories (also used by sync_repositories.sh and
+# pull_repositories_xf.sh).  It defines $git_projects.
+source ${scriptdir}/repository_list.sh
 
-for repo in $repos; do
+for project in ${git_projects[@]}; do
+
+  namespace=`echo $project | sed -e 's%/.*%%'`
+  repo=`echo $project | sed -e 's%.*/%%'`
 
   # Remove the old tar file.
-  if test -f $repo.tar; then
-    rm -f $repo.tar
+  if [[ -f ${namespace}_${repo}.git.tar ]]; then
+    run "rm -f ${namespace}_${repo}.git.tar"
   fi
 
-  # Checkout or update the git repository
-  # Assume this is already done by sync_repositories.sh (every 15 minutes).
-  #if test -d $repo; then
-  #  run "cd $repo"
-  #  run "git pull"
-  #  run "cd .."
-  #else
-  #  run "git clone https://github.com/losalamos/Draco.git draco.git"
-  #fi
-
-  if test -d $gitdir/$repo; then
+  if [[ -d ${gitroot}/${namespace}/${repo}.git ]]; then
 
     # Tar it up
-    run "tar -cvf $repo.tar $repo"
+    run "tar -cvf ${namespace}_${repo}.git.tar ${namespace}/${repo}.git"
 
     # Ensure the new files have group rwX permissions.
-    run "chgrp -R draco $repo.tar"
-    run "chmod -R g+rwX,o=g-w  $repo.tar"
+    run "chgrp ccsrad ${namespace}_${repo}.git.tar"
+    run "chmod g+rwX,o-rwX ${namespace}_${repo}.git.tar"
 
     # Transfer the file via transfer.lanl.gov
-    run "scp $repo.tar red@transfer.lanl.gov:"
+    run "scp ${namespace}_${repo}.git.tar red@transfer.lanl.gov:"
 
   else
-    echo "Warning: git mirror repository $gitdir/$repo was not found."
+    echo "Warning: git mirror repository $gitroot/${project}.git was not found."
     echo "         Skipping to the next repository..."
   fi
 
 done
+
+echo -e "\n--------------------------------------------------------------------------------"
+echo "All done."
+echo "--------------------------------------------------------------------------------"
+
 
 #------------------------------------------------------------------------------#
 # Notes on using Transfer 2.0 (copied from the Draco wiki):
@@ -132,13 +111,6 @@ done
 # % kinit -kt ~/.ssh/xfkeytab transfer/${USER}push@lanl.gov
 # % ssh yellow@transfer.lanl.gov myfiles
 # % scp /ccs/codes/radtran/svn/draco.kt.tar red@transfer.lanl.gov:
-# </pre>
-
-# * Using the transfer.sh script:
-
-# <pre>
-# draco/tools/transfer.sh push2r --recipients=kgt@lanl.gov -q `pwd`/<file>
-# draco/tools/transfer.sh pullname <file>
 # </pre>
 
 # h3. Generating keytab file that works with transfer 2.0.

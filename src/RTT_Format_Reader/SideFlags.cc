@@ -1,21 +1,20 @@
 //----------------------------------*-C++-*--------------------------------//
-/*! 
+/*!
  * \file   RTT_Format_Reader/SideFlags.cc
  * \author B.T. Adams
  * \date   Wed Jun 7 10:33:26 2000
  * \brief  Implementation file for RTT_Format_Reader/SideFlags class.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "SideFlags.hh"
 
 namespace rtt_RTT_Format_Reader {
+
+//----------------------------------------------------------------------------//
 /*!
- * \brief Parses the side_flags data block of the mesh file via calls to 
+ * \brief Parses the side_flags data block of the mesh file via calls to
  *        private member functions.
  * \param meshfile Mesh file name.
  */
@@ -24,6 +23,8 @@ void SideFlags::readSideFlags(ifstream &meshfile) {
   readFlagTypes(meshfile);
   readEndKeyword(meshfile);
 }
+
+//----------------------------------------------------------------------------//
 /*!
  * \brief Reads and validates the side_flags block keyword.
  * \param meshfile Mesh file name.
@@ -36,6 +37,8 @@ void SideFlags::readKeyword(ifstream &meshfile) {
          "Invalid mesh file: side_flags block missing");
   std::getline(meshfile, dummyString);
 }
+
+//----------------------------------------------------------------------------//
 /*!
  * \brief Reads and validates the side_flags block data.
  * \param meshfile Mesh file name.
@@ -55,6 +58,8 @@ void SideFlags::readFlagTypes(ifstream &meshfile) {
     flagTypes[i]->readFlags(meshfile);
   }
 }
+
+//----------------------------------------------------------------------------//
 /*!
  * \brief Reads and validates the end_side_flags block keyword.
  * \param meshfile Mesh file name.
@@ -67,6 +72,8 @@ void SideFlags::readEndKeyword(ifstream &meshfile) {
          "Invalid mesh file: side_flags block missing end");
   std::getline(meshfile, dummyString); // read and discard blank line.
 }
+
+//----------------------------------------------------------------------------//
 /*!
  * \brief Returns the index to the side flag type that contains the specified
  *        string.
@@ -75,10 +82,12 @@ void SideFlags::readEndKeyword(ifstream &meshfile) {
  */
 int SideFlags::get_flag_type_index(string &desired_flag_type) const {
   int flag_type_index = -1;
-  for (int f = 0; f < dims.get_nside_flag_types(); f++) {
+  for (size_t f = 0; f < dims.get_nside_flag_types(); f++) {
     string flag_type = flagTypes[f]->getFlagType();
-    if (flag_type == desired_flag_type)
-      flag_type_index = f;
+    if (flag_type == desired_flag_type) {
+      Check(f < INT_MAX);
+      flag_type_index = static_cast<int>(f);
+    }
   }
   return flag_type_index;
 }

@@ -3,11 +3,8 @@
  * \file   cdi_analytic/test/tstPseudo_Line_Analytic_MultigroupOpacity.cc
  * \author Kent G. Budge
  * \date   Tue Apr  5 09:01:03 2011
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "c4/ParallelUnitTest.hh"
@@ -40,9 +37,7 @@ void tstPseudo_Line_Analytic_MultigroupOpacity(UnitTest &ut) {
   int const number_of_edges = 10;
   unsigned seed = 1;
 
-  //    SP<Expression const> const continuum(new Constant_Expression(1,1.0e-2));;
-
-  SP<Expression const> continuum;
+  std::shared_ptr<Expression const> continuum;
   {
     map<string, pair<unsigned, Unit>> variables;
     variables["x"] = pair<unsigned, Unit>(0, raw);
@@ -73,8 +68,9 @@ void tstPseudo_Line_Analytic_MultigroupOpacity(UnitTest &ut) {
     vector<double> sigma = model.getOpacity(1.0, 1.0);
 
     ofstream out("pseudo_none.dat");
-    for (unsigned g = 0; g < NG; ++g) {
-      out << ((g + 0.5) * (emax - emin) / NG + emin) << ' ' << sigma[g] << endl;
+    for (unsigned gg = 0; gg < NG; ++gg) {
+      out << ((gg + 0.5) * (emax - emin) / NG + emin) << ' ' << sigma[gg]
+          << endl;
     }
 
     ut.passes("Calculated Pseudo_Line_Analytic_MultigroupOpacity opacity");
@@ -91,8 +87,9 @@ void tstPseudo_Line_Analytic_MultigroupOpacity(UnitTest &ut) {
     vector<double> sigma = model.getOpacity(1.0, 1.0);
 
     ofstream out("pseudo_rosseland.dat");
-    for (unsigned g = 0; g < NG; ++g) {
-      out << ((g + 0.5) * (emax - emin) / NG + emin) << ' ' << sigma[g] << endl;
+    for (unsigned gg = 0; gg < NG; ++gg) {
+      out << ((gg + 0.5) * (emax - emin) / NG + emin) << ' ' << sigma[gg]
+          << endl;
     }
 
     ut.passes("Calculated Pseudo_Line_Analytic_MultigroupOpacity opacity");
@@ -109,8 +106,9 @@ void tstPseudo_Line_Analytic_MultigroupOpacity(UnitTest &ut) {
     vector<double> sigma = model.getOpacity(1.0, 1.0);
 
     ofstream out("pseudo_planck.dat");
-    for (unsigned g = 0; g < NG; ++g) {
-      out << ((g + 0.5) * (emax - emin) / NG + emin) << ' ' << sigma[g] << endl;
+    for (unsigned gg = 0; gg < NG; ++gg) {
+      out << ((gg + 0.5) * (emax - emin) / NG + emin) << ' ' << sigma[gg]
+          << endl;
     }
 
     ut.passes("Calculated Pseudo_Line_Analytic_MultigroupOpacity opacity");
@@ -127,8 +125,9 @@ void tstPseudo_Line_Analytic_MultigroupOpacity(UnitTest &ut) {
     vector<double> sigma = model.getOpacity(1.0, 1.0);
 
     ofstream out("pseudo_rosseland_d.dat");
-    for (unsigned g = 0; g < NG; ++g) {
-      out << ((g + 0.5) * (emax - emin) / NG + emin) << ' ' << sigma[g] << endl;
+    for (unsigned fg = 0; fg < NG; ++fg) {
+      out << ((fg + 0.5) * (emax - emin) / NG + emin) << ' ' << sigma[fg]
+          << endl;
     }
 
     ut.passes("Calculated Pseudo_Line_Analytic_MultigroupOpacity opacity");
@@ -145,8 +144,9 @@ void tstPseudo_Line_Analytic_MultigroupOpacity(UnitTest &ut) {
     vector<double> sigma = model.getOpacity(1.0, 1.0);
 
     ofstream out("pseudo_planck_d.dat");
-    for (unsigned g = 0; g < NG; ++g) {
-      out << ((g + 0.5) * (emax - emin) / NG + emin) << ' ' << sigma[g] << endl;
+    for (unsigned gg = 0; gg < NG; ++gg) {
+      out << ((gg + 0.5) * (emax - emin) / NG + emin) << ' ' << sigma[gg]
+          << endl;
     }
 
     ut.passes("Calculated Pseudo_Line_Analytic_MultigroupOpacity opacity");
@@ -154,7 +154,6 @@ void tstPseudo_Line_Analytic_MultigroupOpacity(UnitTest &ut) {
 }
 
 //---------------------------------------------------------------------------//
-
 int main(int argc, char *argv[]) {
   rtt_c4::ParallelUnitTest ut(argc, argv, release);
   try {

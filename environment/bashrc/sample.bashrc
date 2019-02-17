@@ -22,7 +22,9 @@ case ${-} in
    fi
    ;;
 *) # Not an interactive shell
-  export INTERACTIVE=false ;;
+  export INTERACTIVE=false
+  export DRACO_ENV_DIR=$HOME/draco/environment
+  ;;
 esac
 
 #------------------------------------------------------------------------------#
@@ -37,22 +39,19 @@ fi
 #------------------------------------------------------------------------------#
 if test "$INTERACTIVE" = true; then
 
+  # aliases, bash functions
+  # source ~/sample.bash_interactive
+
   # Set terminal title
   # echo -ne "\033]0;${nodename}\007"
 
-  # Aliases ---------------------------------------------------------------------#
-  # alias xpdf='evince'
-  # alias xload='xload -fg brown -fn 6x13 -geometry 180x100+1500+0'
+  # other personalized settings
 
-  # drive your friends crazy...
-  # alias vi='emacs -nw'
+  # case `uname -n | sed -e s/[.].*//` in
+  # ccscs[123456789])
+  #    export CDPATH=.:/home/$USER:/scratch:/scratch/$USER:/scratch/vendors/Modules
+  #    module load global exuberant-ctags
+  #    ;;
+  # esac
 
-  # common cmake commands
-  # alias cmakerel='cmake -DCMAKE_BUILD_TYPE=Release'
-  # alias cmakerelfast='cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF'
-  # alias cmakerwdi='cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo'
-  # Use gcc's STL bounds checking
-  # alias cmakebc='cmake -DGCC_ENABLE_GLIBCXX_DEBUG=ON'
-  # Turn on extra debug info and floating point exception checking.
-  # alias cmakefd='cmake -DDRACO_DIAGNOSTICS=7'
 fi

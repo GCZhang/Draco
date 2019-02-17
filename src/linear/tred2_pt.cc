@@ -4,11 +4,8 @@
  * \author Kent Budge
  * \date   Thu Sep  2 14:49:55 2004
  * \brief  Specializations of tred2
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "tred2.i.hh"

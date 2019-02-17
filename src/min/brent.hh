@@ -4,18 +4,14 @@
  * \author Kent Budge
  * \date   Tue Aug 17 15:30:23 2004
  * \brief  Find minimum of a function.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef min_brent_hh
 #define min_brent_hh
 
 #include "ds++/DracoMath.hh"
-#include <limits>
 
 namespace rtt_min {
 
@@ -39,11 +35,12 @@ namespace rtt_min {
 template <class Function>
 double brent(double const ax, double const bx, double const cx, Function f,
              double const tol, double &xmin) {
-  using std::numeric_limits;
   using rtt_dsxx::sign;
+  using std::numeric_limits;
 
   unsigned const ITMAX = 100;
-  double const ZEPS = numeric_limits<double>::epsilon() * 1.0e-3;
+  double const eps = numeric_limits<double>::epsilon();
+  double const ZEPS = eps * 1.0e-3;
   double const CGOLD = 0.3819660;
 
   double d = 0.0;
@@ -109,12 +106,13 @@ double brent(double const ax, double const bx, double const cx, Function f,
       } else {
         b = u;
       }
-      if (fu <= fw || w == x) {
+      if (fu <= fw || rtt_dsxx::soft_equiv(w, x, eps)) {
         v = w;
         w = u;
         fv = fw;
         fw = fu;
-      } else if (fu <= fv || v == x || v == w) {
+      } else if (fu <= fv || rtt_dsxx::soft_equiv(v, x, eps) ||
+                 rtt_dsxx::soft_equiv(v, w, eps)) {
         v = u;
         fv = fu;
       }

@@ -4,10 +4,10 @@
  * \author Rob Lowrie
  * \date   Wed Dec 29 11:24:17 2004
  * \brief  Implementatin of Foo_Base.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
  */
 //---------------------------------------------------------------------------//
-// $Id$
+
 //---------------------------------------------------------------------------//
 
 #include "Foo_Base.hh"

@@ -1,12 +1,13 @@
-## -*- Mode: sh -*-----------------------------------------------------------##
-##
-## file  : bash_functions.sh
+## -*- Mode: sh -*-
+##---------------------------------------------------------------------------##
+## File  : environment/bin/bash_functions.sh
+## Date  : Tuesday, May 31, 2016, 14:48 pm
+## Author: Kelly Thompson
+## Note  : Copyright (C) 2016-2019, Triad National Security, LLC.
+##         All rights are reserved.
+##---------------------------------------------------------------------------##
 ##
 ## Summary: Misc bash functions useful during development of code.
-##
-## 1. Use GNU tools instead of vendor tools when possible
-## 2. Create some alias commands to provide hints when invalid
-##    commands are issued.
 ##
 ## Functions
 ## ---------
@@ -20,11 +21,23 @@
 ## findsymbol <sym>  - search all libraries (.so and .a files) in the
 ##                     current directory for symbol <sym>.
 ##
-## pkgdepends        - Print a list of dependencies for the current
-##                     directory.
-##
 ## npwd              - function used to set the prompt under bash.
 ##
+## xfstatus          - report status of transfer.lanl.gov
+##
+## rm_from_path      - remove a directory from $PATH
+##
+## add_to_path       - add a directory to $PATH
+##
+## proxy             - (un)set http_proxy variables
+##
+## fn_exists         - test if a bash function is defined
+##
+## run               - echo then evaluate a bash command
+##
+## rdde              - reload the default draco environment
+##
+## qrm               - quick remove (for lustre filesystems).
 ##---------------------------------------------------------------------------##
 
 ##---------------------------------------------------------------------------##
@@ -68,6 +81,9 @@ function cleanemacs
 ## ...scratch...    -> #
 ## .../projects/... -> @
 ##---------------------------------------------------------------------------##
+parse_git_branch() {
+  git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ (\1)/'
+}
 
 function npwd()
 {
@@ -81,7 +97,7 @@ function npwd()
 
   # local regHome=$(echo ${HOME} | sed -e 's/.*\///')
 
-  local scratchdirs=/scratch:/lustre/ttscratch1:/lustre/scratch[123]/yellow
+  local scratchdirs=/scratch:/lustre/ttscratch1:/lustre/scratch[34]/yellow
   if [[ $2 ]]; then scratchdirs=$2; fi
 
   # Indicator that there has been directory truncation:
@@ -160,86 +176,6 @@ function findsymbol()
 }
 
 ##---------------------------------------------------------------------------##
-## Usage:
-##    pkgdepends
-##
-## Purpose:
-##    The script will list all of the vendors and Draco packages
-##    dependencies for the files in the current directory.
-##---------------------------------------------------------------------------##
-
-function pkgdepends()
-{
-  echo "This package depends on:"
-  echo " "
-  echo "Packages:"
-  grep 'include [<"].*[/]' *.cc *.hh | sed -e 's/.*[#]include [<"]/   /' | sed -e 's/\/.*//' | sort -u
-  echo " "
-  if test -f configure.ac; then
-    echo "Vendors:"
-    grep "SETUP[(]pkg" configure.ac | sed -e 's/AC_/   /' | sed -e 's/_.*//'
-  fi
-}
-
-##---------------------------------------------------------------------------##
-## Usage:
-##    findgrep <regex>
-##
-## Finds all occurances of <regex> by looking at all files in the
-## current directory and all subdirectories recursively.  Prints the
-## filename and line number for each occurance.
-##---------------------------------------------------------------------------##
-function findgrep()
-{
-  # Exclude .svn directories: (-path '*/.svn' -prune)
-  # Or (-o)
-  files=`find . -path '*/.svn' -prune -o -type f -exec grep -q $1 {} /dev/null \; -print`
-  for file in $files; do
-    echo " "
-    echo "--> Found \"$1\" in file \"$file\" :"
-    echo " "
-    grep $1 $file
-  done
-  echo " "
-}
-
-##---------------------------------------------------------------------------##
-## Usage:
-##    archive [age_in_days]
-##
-## Move all files older than [age_in_days] (default: 7d) from the
-## current directory into a subdirectory named as the current year.
-##---------------------------------------------------------------------------##
-function archive()
-{
-  # Find files (-type f) older than 7 days (-mtime +7) and in the local
-  # directory (-maxdepth 1) and move them to a subdirectory named by
-  # the current year.
-  local dt=7
-  if test -n "$1"; then
-    dt=$1
-  fi
-  local year=`date +%Y`
-  #  local year=`stat {} | grep Change | sed -e 's/Change: //' -e 's/[-].*//'
-  #  if ! test -d $year; then
-  #    mkdir $year
-  #  fi
-  #  echo "Moving files to ${year}/..."
-  #  cmd="find . -maxdepth 1 -mtime +${dt} -type f -exec mv {} ${year}/. \;"
-  # echo $cmd
-  #  eval $cmd
-  files=`find . -maxdepth 1 -mtime +${dt} -type f`
-  for file in $files; do
-    year=`stat ${file} | grep Modify | sed -e 's/Modify: //' -e 's/[-].*//'`
-    echo "   Moving $file to ${year}"
-    if ! test -d $year; then
-      mkdir $year
-    fi
-    mv ${file} $year/$file
-  done
-}
-
-##---------------------------------------------------------------------------##
 ## Transfer 2.0 (Mercury replacement)
 ## Ref: http://transfer.lanl.gov
 ##
@@ -259,15 +195,31 @@ function xfstatus()
 ##---------------------------------------------------------------------------##
 function rm_from_path ()
 {
-  badpath=$1
-  newpath=""
-  for dir in ${PATH//:/ }; do
-    if ! test "${badpath}" = "${dir}"; then
-      newpath="${newpath}:${dir}"
-    fi;
-  done
-  newpath=`echo $newpath | sed -e s/^[:]//`
-  export PATH=$newpath
+  export PATH=$(echo "$PATH" | sed -e 's%:${1}%%')
+}
+
+##---------------------------------------------------------------------------##
+## If path is a directory add it to PATH (if not already in PATH)
+##
+## Use:
+##   add_to_path <path> TEXINPUTS|BSTINPUTS|BIBINPUTS|PATH
+##---------------------------------------------------------------------------##
+function add_to_path ()
+{
+  case $2 in
+    TEXINPUTS)
+      if [ -d "$1" ] && [[ ":${TEXINPUTS}:" != *":$1:"* ]]; then
+        TEXINPUTS="${TEXINPUTS:+${TEXINPUTS}:}$1"; fi ;;
+    BSTINPUTS)
+      if [ -d "$1" ] && [[ ":${BSTINPUTS}:" != *":$1:"* ]]; then
+        BSTINPUTS="${BSTINPUTS:+${BSTINPUTS}:}$1"; fi ;;
+    BIBINPUTS)
+      if [ -d "$1" ] && [[ ":${BIBINPUTS}:" != *":$1:"* ]]; then
+        BIBINPUTS="${BIBINPUTS:+${BIBINPUTS}:}$1"; fi ;;
+    *)
+      if [ -d "$1" ] && [[ ":${PATH}:" != *":$1:"* ]]; then
+        PATH="${PATH:+${PATH}:}$1"; fi ;;
+  esac
 }
 
 ##---------------------------------------------------------------------------##
@@ -324,3 +276,55 @@ function rdde ()
   unset DRACO_BASHRC_DONE
   source ${DRACO_ENV_DIR}/bashrc/.bashrc
 }
+
+#------------------------------------------------------------------------------#
+# Quick remove: instead of 'rm -rf', mv the directory to .../trash/tmpname
+#
+# Use: qrm dir1 dir2 ...
+#------------------------------------------------------------------------------#
+function qrm ()
+{
+  # must provide at least one directory
+  if [[ ! $1 ]]; then
+    echo "You must provide a single argument to this function that is the name of the directory to delete."
+    return
+  fi
+
+  for dir in "$@"; do
+
+    # fully qualified directory name
+    fqd=`cd $dir && pwd`
+
+    if [[ ! -d $dir ]]; then
+      echo "$dir doesn't look like a directory. aborting."
+      return
+    fi
+
+    if [[ `echo $fqd | grep -c scratch` == 0 ]]; then
+      echo "This command should only be used for scratch directories."
+      return
+    fi
+
+    # Identify the scratch system
+    trashdir=`echo $fqd | sed -e "s%$USER.*%$USER/trash%"`
+
+    # ensure trash folder exists.
+    mkdir -p $trashdir
+    if ! [[ -d $trashdir ]]; then
+      echo "FATAL ERROR: Unable access trashdir = $trashdir"
+      return
+    fi
+
+    # We rename/move the old directory to a random name
+    TMPDIR=$(mktemp -d $trashdir/XXXXXXXXXX) || { echo \
+      "Failed to create temporary directory"; return; }
+
+    # do it
+    mv $dir $TMPDIR/.
+
+  done
+}
+
+#------------------------------------------------------------------------------#
+# End environment/bin/.bash_functions
+#------------------------------------------------------------------------------#

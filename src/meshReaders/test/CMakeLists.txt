@@ -1,12 +1,10 @@
 #-----------------------------*-cmake-*----------------------------------------#
-# file   config/CMakeLists.txt
+# file   meshReaders/test/CMakeLists.txt
 # author Kelly Thompson <kgt@lanl.gov>
 # date   2012 Aug 1
 # brief  Generate build project files for meshReaders/test.
-# note   Copyright (C) 2016, Los Alamos National Security, LLC.
+# note   Copyright (C) 2016-2019, Triad National Security, LLC.
 #        All rights reserved.
-#------------------------------------------------------------------------------#
-# $Id$
 #------------------------------------------------------------------------------#
 project( meshReaders_test CXX )
 
@@ -16,15 +14,6 @@ project( meshReaders_test CXX )
 
 file( GLOB test_sources *.cc )
 file( GLOB mesh_input_files *.mesh.in )
-
-# ---------------------------------------------------------------------------- #
-# Directories to search for include directives
-# ---------------------------------------------------------------------------- #
-
-include_directories( 
-   ${PROJECT_SOURCE_DIR}      # headers for tests
-   ${PROJECT_SOURCE_DIR}/..   # headers for package
-)
 
 # ---------------------------------------------------------------------------- #
 # Build Unit tests
@@ -42,3 +31,7 @@ provide_aux_files(
    FILES    "${mesh_input_files}"
    SRC_EXT  ".mesh.in"
    DEST_EXT ".mesh" )
+
+#------------------------------------------------------------------------------#
+# End meshReaders/test/CMakeLists.txt
+#------------------------------------------------------------------------------#

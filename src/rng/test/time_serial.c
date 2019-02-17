@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * util_expandtpl.h to "templatize" over all the different permutations of RNGs
  * and NxW and R.
  */
+
 #include "util.h"
 
 #include "time_serial.h"
@@ -43,6 +44,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define KERNEL R123_STATIC_INLINE
 #define get_global_id(i) (i)
 #include "time_random123.h"
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
 
 #define TEST_TPL(NAME, N, W, R)                                                              \
   void NAME##N##x##W##_##R(                                                                  \
@@ -153,6 +159,11 @@ int main(int argc, char **argv) {
   }
   return 0;
 }
+
+#ifdef __GNUC__
+// Restore GCC diagnostics to previous state.
+#pragma GCC diagnostic pop
+#endif
 
 //---------------------------------------------------------------------------//
 // end time_serial.c

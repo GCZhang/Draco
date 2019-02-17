@@ -1,12 +1,11 @@
 //----------------------------------*-C++-*----------------------------------//
 /*!
- * \file   FortranCheck/test/fc_derived_type.cc
+ * \file   FortranChecks/fc_derived_type.cc
  * \author Allan Wollaber
  * \date   Tue Jul 10 12:48:13 MDT 2012
  * \brief  Test Fortran main calling C with a derived type
- * \note   Copyright (c) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
+ * \note   Copyright (c) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "ds++/config.h"

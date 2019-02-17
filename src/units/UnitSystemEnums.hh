@@ -4,11 +4,11 @@
  *  \brief  This file contains enums, conversion factors and labels that help
  *          define a UnitSystem. 
  *  \date   Fri Oct 24 15:57:09 2003
- *  \note   Copyright (C) 2016 Los Alamos National Security, LLC.
+ *  \note   Copyright (C) 2016-2019 Triad National Security, LLC.
  *          All rights reserved.
  */
 //---------------------------------------------------------------------------//
-// $Id$
+
 //---------------------------------------------------------------------------//
 
 #ifndef __units_UnitSystemEnums_hh__

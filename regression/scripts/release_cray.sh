@@ -1,4 +1,4 @@
-#!/bin/bash -l
+#!/bin/bash
 
 ##---------------------------------------------------------------------------##
 ## Assumptions:
@@ -18,8 +18,7 @@
 ## 1. Set modulefiles to be loaded in named environment functions.
 ## 2. Update variables that control the build:
 ##    - $ddir
-##    - $CONFIG_BASE
-## 3. Run this script: ./release_ml &> ../logs/relase_moonlight.log
+## 3. Run this script: scripts/release_cray.sh &> logs/relase-trinitite.log
 
 #----------------------------------------------------------------------#
 # Per release settings go here:
@@ -27,7 +26,7 @@
 
 # Draco install directory name (/usr/projects/draco/draco-NN_NN_NN)
 export package=draco
-ddir=draco-6_20_0
+ddir=draco-7_0_0
 pdir=$ddir
 
 # environment (use draco modules)
@@ -35,52 +34,8 @@ pdir=$ddir
 target="`uname -n | sed -e s/[.].*//`"
 case $target in
   t[rt]-fe* | t[rt]-login* )
-    environments="intel16env" ;;
+    environments="intel1802env intel1802env-knl intel1704env intel1704env-knl";;
 esac
-function intel16env()
-{
-run "module load user_contrib friendly-testing"
-run "module unload ndi metis parmetis superlu-dist trilinos"
-run "module unload lapack gsl intel"
-run "module unload cmake numdiff"
-run "module unload intel gcc"
-run "module unload PrgEnv-intel PrgEnv-cray PrgEnv-gnu"
-run "module unload papi perftools"
-run "module load PrgEnv-intel"
-run "module unload xt-libsci xt-totalview"
-run "module load gsl/2.1"
-run "module load cmake/3.6.2 numdiff"
-run "module load trilinos/12.8.1 superlu-dist/4.3 metis/5.1.0 parmetis/4.0.3"
-run "module load ndi random123 eospac/6.2.4"
-run "module list"
-CC=`which cc`
-CXX=`which CC`
-FC=`which ftn`
-export CRAYPE_LINK_TYPE=dynamic
-export OMP_NUM_THREADS=16
-}
-
-# function intel14env()
-# {
-# run "module load friendly-testing user_contrib"
-# run "module unload ndi ParMetis SuperLU_DIST trilinos"
-# run "module unload lapack gsl intel"
-# run "module unload cmake numdiff svn"
-# run "module unload PrgEnv-intel PrgEnv-pgi"
-# run "module unload papi perftools"
-# run "module load PrgEnv-intel"
-# run "module unload xt-libsci xt-totalview"
-# run "module swap intel intel/14.0.4.211"
-# run "module load gsl/1.15"
-# run "module load cmake/3.3.2 numdiff svn"
-# run "module load trilinos SuperLU_DIST"
-# run "module load ParMetis ndi random123 eospac/6.2.4"
-# run "module list"
-# CC=`which cc`
-# CXX=`which CC`
-# FC=`which ftn`
-# export OMP_NUM_THREADS=8
-# }
 
 # ============================================================================
 # ====== Normally, you do not edit anything below this line ==================
@@ -89,48 +44,54 @@ export OMP_NUM_THREADS=16
 ##---------------------------------------------------------------------------##
 ## Generic setup
 ##---------------------------------------------------------------------------##
-sdir=`dirname $0`
-cdir=`pwd`
-cd $sdir
-export script_dir=`pwd`
-export draco_script_dir=$script_dir
+
+export script_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" )
+if ! [[ -d $script_dir ]]; then
+  export script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+fi
+export draco_script_dir=`readlink -f $script_dir | head -n 1`
+echo "source ${draco_script_dir}/common.sh"
+source ${draco_script_dir}/common.sh
 
 # CMake options that will be included in the configuration step
-export CONFIG_BASE="-DDRACO_VERSION_PATCH=`echo $ddir | sed -e 's/.*_//'`"
-
-cd $cdir
-source $script_dir/common.sh
+export CONFIG_BASE="-DDraco_VERSION_PATCH=`echo $ddir | sed -e 's/.*_//'`"
 
 # sets umask 0002
 # sets $install_group, $install_permissions, $build_permissions
 establish_permissions
 
 export source_prefix="/usr/projects/$package/$pdir"
-scratchdir=`selectscratchdir`
+# use NFS locations until luster is fixed.
+# scratchdir=`selectscratchdir`
+if [[ -d /netscratch/$USER ]]; then
+  scratchdir=/netscratch/$USER/scratch
+else
+  scratchdir=/usr/projects/ccsrad/scratch
+  mkdir -p $scratchdir
+fi
 ppn=`lookupppn`
 
 # =============================================================================
 # Build types:
-# - These must be copied into release_ml.msub because bash arrays cannot
+# - These must be copied into release_cray.msub because bash arrays cannot
 #   be passed to the subshell (bash bug)
 # =============================================================================
 
 OPTIMIZE_ON="-DCMAKE_BUILD_TYPE=Release -DDRACO_LIBRARY_TYPE=SHARED"
 OPTIMIZE_OFF="-DCMAKE_BUILD_TYPE=Debug  -DDRACO_LIBRARY_TYPE=SHARED"
-#OPTIMIZE_RWDI="-DCMAKE_BUILD_TYPE=RelWithDebInfo -DDRACO_LIBRARY_TYPE=SHARED"
+OPTIMIZE_RWDI="-DCMAKE_BUILD_TYPE=RELWITHDEBINFO -DDRACO_LIBRARY_TYPE=SHARED -DDRACO_DBC_LEVEL=15"
 
 LOGGING_ON="-DDRACO_DIAGNOSTICS=7 -DDRACO_TIMING=1"
 LOGGING_OFF="-DDRACO_DIAGNOSTICS=0 -DDRACO_TIMING=0"
 
 # Define the meanings of the various code versions:
 
-# VERSIONS=( "debug" "opt" "rwdi" )
-VERSIONS=( "debug" "opt" )
+VERSIONS=( "debug" "opt" "rwdi" )
 OPTIONS=(\
     "$OPTIMIZE_OFF  $LOGGING_OFF" \
     "$OPTIMIZE_ON   $LOGGING_OFF" \
+    "$OPTIMIZE_RWDI $LOGGING_OFF" \
 )
-#     "$OPTIMIZE_RWDI $LOGGING_OFF" \
 
 ##---------------------------------------------------------------------------##
 ## Environment review
@@ -158,6 +119,8 @@ fi
 ## Execute the build, test and install
 ##---------------------------------------------------------------------------##
 
+source $draco_script_dir/cray-env.sh
+
 jobids=""
 for env in $environments; do
 
@@ -168,11 +131,20 @@ for env in $environments; do
   $env
 
   buildflavor=`flavor`
-  # e.g.: buildflavor=moonlight-openmpi-1.6.5-intel-15.0.3
+  # e.g.: buildflavor=trinitite-openmpi-1.6.5-intel-15.0.3
 
   export install_prefix="$source_prefix/$buildflavor"
-  export build_prefix="/$scratchdir/$USER/$pdir/$buildflavor"
+  export build_prefix="$scratchdir/$USER/$pdir/$buildflavor"
   export draco_prefix="/usr/projects/draco/$ddir/$buildflavor"
+
+  unset partition
+  unset knlext
+  case $TARGET in
+    knl)
+      partition="-p knl"
+      knlext="-knl"
+      ;;
+  esac
 
   for (( i=0 ; i < ${#VERSIONS[@]} ; ++i )); do
 
@@ -184,13 +156,16 @@ for env in $environments; do
     # export dry_run=1
     # config and build on front-end
     echo -e "\nConfigure and build $package for $buildflavor-$version."
+    echo
     export steps="config build"
-    run "$draco_script_dir/release_cray.msub &> $source_prefix/logs/release-$buildflavor-$version-cb.log"
+    logfile="$source_prefix/logs/release-$buildflavor-$version-cb${knlext}.log"
+    run "$draco_script_dir/release.msub &> $logfile"
 
     # Run the tests on the back-end.
     export steps="test"
-    cmd="msub -V $access_queue -l walltime=08:00:00 -l nodes=2:ppn=${ppn} -j oe \
--o $source_prefix/logs/release-$buildflavor-$version-t.log $draco_script_dir/release_cray.msub"
+    logfile="$source_prefix/logs/release-$buildflavor-$version-t${knlext}.log"
+    cmd="sbatch -J rel-draco-$buildflavor-$version -t 8:00:00 -N 1 $partition \
+ --gres=craynetwork:0 -o $logfile $draco_script_dir/release.msub"
     echo -e "\nTest $package for $buildflavor-$version."
     echo "$cmd"
     jobid=`eval ${cmd}`

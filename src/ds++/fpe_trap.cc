@@ -5,7 +5,7 @@
  * \date   Thu Oct 13 16:52:05 2005
  * \brief  platform dependent implementation of fpe_trap functions.
  *
- * Copyright (C) 2016 Los Alamos National Security, LLC.
+ * Copyright (C) 2016-2019 Triad National Security, LLC.
  *               All rights reserved.
  * Copyright (C) 1994-2001  K. Scott Hunziker.
  * Copyright (C) 1990-1994  The Boeing Company.
@@ -15,15 +15,11 @@
  * available at http://algae.sourceforge.net/.
  */
 //---------------------------------------------------------------------------//
-// $Id$
-//---------------------------------------------------------------------------//
 
 #include "fpe_trap.hh"
 #include "Assert.hh"
 #include "StackTrace.hh"
-#include <iostream>
 #include <sstream>
-#include <string>
 
 //---------------------------------------------------------------------------//
 // Linux_x86
@@ -40,35 +36,43 @@ extern "C" void catch_sigfpe(int sig, siginfo_t *psSiginfo,
   std::string error_type;
 
   if (sig != SIGFPE) {
-    error_type = "Floating point exception problem.";
+    error_type = "FATAL ERROR: Floating point exception problem.";
   } else {
     switch (psSiginfo->si_code) {
     case FPE_INTDIV:
-      error_type = "SIGFPE (Integer divide by zero)";
+      error_type =
+          "FATAL ERROR (SIGNAL) Caught SIGFPE (Integer divide by zero)";
       break;
     case FPE_INTOVF:
-      error_type = "SIGFPE (Integer overflow)";
+      error_type = "FATAL ERROR (SIGNAL) Caught SIGFPE (Integer overflow)";
       break;
     case FPE_FLTDIV:
-      error_type = "SIGFPE (Floating point divide by zero)";
+      error_type =
+          "FATAL ERROR (SIGNAL) Caught SIGFPE (Floating point divide by zero)";
       break;
     case FPE_FLTOVF:
-      error_type = "SIGFPE (Floating point overflow)";
+      error_type =
+          "FATAL ERROR (SIGNAL) Caught SIGFPE (Floating point overflow)";
       break;
     case FPE_FLTUND:
-      error_type = "SIGFPE (Floating point underflow)";
+      error_type =
+          "FATAL ERROR (SIGNAL) Caught SIGFPE (Floating point underflow)";
       break;
     case FPE_FLTRES:
-      error_type = "SIGFPE (Floating point inexact result)";
+      error_type =
+          "FATAL ERROR (SIGNAL) Caught SIGFPE (Floating point inexact result)";
       break;
     case FPE_FLTINV:
-      error_type = "SIGFPE (Invalid floating point operation)";
+      error_type = "FATAL ERROR (SIGNAL) Caught SIGFPE (Invalid floating point "
+                   "operation)";
       break;
     case FPE_FLTSUB:
-      error_type = "SIGFPE (Floating point subscript out of range)";
+      error_type = "FATAL ERROR (SIGNAL) Caught SIGFPE (Floating point "
+                   "subscript out of range)";
       break;
     default:
-      error_type = "SIGFPE (Unknown floating point exception)";
+      error_type = "FATAL ERROR (SIGNAL) Caught SIGFPE (Unknown floating point "
+                   "exception)";
       break;
     }
   }
@@ -79,7 +83,7 @@ extern "C" void catch_sigfpe(int sig, siginfo_t *psSiginfo,
 namespace rtt_dsxx {
 
 //---------------------------------------------------------------------------//
-/*! 
+/*!
  * \brief Enable trapping fpe signals.
  * \return \b true if trapping is enabled, \b false otherwise.
  *
@@ -89,13 +93,13 @@ bool fpe_trap::enable(void) {
   struct sigaction act;
 
   // Choose to use Draco's DbC Insist.  If set to false, the compiler should
-  // print a stack trace instead of the pretty print message defined above
-  // in catch_sigfpe.
+  // print a stack trace instead of the pretty print message defined above in
+  // catch_sigfpe.
   if (this->abortWithInsist)
-    act.sa_sigaction = catch_sigfpe; /* the signal handler       */
+    act.sa_sigaction = catch_sigfpe; // the signal handler
 
-  sigemptyset(&(act.sa_mask)); /* no other signals blocked */
-  act.sa_flags = SA_SIGINFO;   /* want 3 args for handler  */
+  sigemptyset(&(act.sa_mask)); // no other signals blocked
+  act.sa_flags = SA_SIGINFO;   // want 3 args for handler
 
   // specify handler
   Insist(!sigaction(SIGFPE, &act, NULL),
@@ -139,7 +143,7 @@ void fpe_trap::disable(void) {
   return;
 }
 
-} // end namespace rtt_shared_lib
+} // namespace rtt_dsxx
 
 #endif // FPETRAP_LINUX_X86
 
@@ -201,6 +205,7 @@ void fpe_trap::disable(void) {
 
 #include <Windows.h> // defines STATUS_FLOAT_...
 #include <float.h>   // defines _controlfp_s
+#include <intrin.h>  // _ReturnAddress
 #include <new.h>     // _set_new_handler
 #include <signal.h>  // SIGABRT
 
@@ -213,7 +218,7 @@ void fpe_trap::disable(void) {
 #pragma fenv_access(on)
 
 /* Signal handler for floating point exceptions. */
-extern "C" void trans_func(unsigned int u, PEXCEPTION_POINTERS pExp) {
+extern "C" void trans_func(unsigned int u, PEXCEPTION_POINTERS /*pExp*/) {
   std::cout << "(fpe_trap/windows_x86.cc) A SIGFPE was detected!" << std::endl;
 
   std::string mesg;
@@ -570,11 +575,10 @@ void __cdecl CCrashHandler::PureCallHandler() {
 }
 
 // CRT invalid parameter handler
-void __cdecl CCrashHandler::InvalidParameterHandler(const wchar_t *expression,
-                                                    const wchar_t *function,
-                                                    const wchar_t *file,
-                                                    unsigned int line,
-                                                    uintptr_t pReserved) {
+void __cdecl CCrashHandler::InvalidParameterHandler(
+    const wchar_t * /*expression*/, const wchar_t * /*function*/,
+    const wchar_t * /*file*/, unsigned int /*line*/, uintptr_t pReserved) {
+
   std::cout << "In CCrashHandler::InvalidParameterHandler" << std::endl;
   pReserved;
 
@@ -621,7 +625,7 @@ void CCrashHandler::SigabrtHandler(int) {
 }
 
 // CRT SIGFPE signal handler
-void CCrashHandler::SigfpeHandler(int /*code*/, int subcode) {
+void CCrashHandler::SigfpeHandler(int /*code*/, int /*subcode*/) {
   std::cout << "In CCrashHandler::SigfpeHandler" << std::endl;
   // Floating point exception (SIGFPE)
 
@@ -727,7 +731,7 @@ void fpe_trap::disable(void) {
   return;
 }
 
-} // end namespace rtt_shared_lib
+} // namespace rtt_dsxx
 
 #endif // FPETRAP_DARWIN_INTEL
 
@@ -803,7 +807,7 @@ void fpe_trap::disable(void) {
   return;
 }
 
-} // end namespace rtt_shared_lib
+} // namespace rtt_dsxx
 
 #endif // FPETRAP_DARWIN_PPC
 

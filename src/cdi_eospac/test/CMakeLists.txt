@@ -3,10 +3,8 @@
 # author Kelly Thompson <kgt@lanl.gov>
 # date   2012 Aug 1
 # brief  Generate build project files for cdi_eospac/test.
-# note   Copyright (C) 2016, Los Alamos National Security, LLC.
+# note   Copyright (C) 2016-2019, Triad National Security, LLC.
 #        All rights reserved.
-#------------------------------------------------------------------------------#
-# $Id: CMakeLists.txt 6732 2012-09-05 22:28:18Z kellyt $
 #------------------------------------------------------------------------------#
 project( cdi_eospac_test CXX )
 
@@ -20,16 +18,6 @@ set( test_sources
 )
 
 # ---------------------------------------------------------------------------- #
-# Directories to search for include directives
-# ---------------------------------------------------------------------------- #
-
-include_directories(
-   ${PROJECT_SOURCE_DIR}      # headers for tests
-   ${PROJECT_SOURCE_DIR}/..   # headers for package
-   ${PROJECT_BINARY_DIR}/..   # c4/config.h
-)
-
-# ---------------------------------------------------------------------------- #
 # Build Unit tests
 # ---------------------------------------------------------------------------- #
 
@@ -40,9 +28,9 @@ add_scalar_tests(
 
 include( ApplicationUnitTest )
 
-# Run the QueryEospac executable reading interactive commands directly
-# from the file QueryEospacInput.dat.  Save the output to
-# QueryEospacInput.out and compare this to the gold file.
+# Run the QueryEospac executable reading interactive commands directly from the
+# file QueryEospacInput.dat.  Save the output to QueryEospacInput.out and
+# compare this to the gold file.
 add_app_unit_test(
   DRIVER ${CMAKE_CURRENT_SOURCE_DIR}/tQueryEospac.cmake
   APP    $<TARGET_FILE_DIR:Exe_QueryEospac>/$<TARGET_FILE_NAME:Exe_QueryEospac>
@@ -50,10 +38,14 @@ add_app_unit_test(
   GOLDFILE  ${PROJECT_SOURCE_DIR}/QueryEospac.gold
 )
 
-# Run the QueryEospac executable with options '--version' and '--help'
-# to ensure these options print the expected output.
+# Run the QueryEospac executable with options '--version' and '--help' to ensure
+# these options print the expected output.
 add_app_unit_test(
   DRIVER ${CMAKE_CURRENT_SOURCE_DIR}/tQueryEospac.cmake
   APP    $<TARGET_FILE_DIR:Exe_QueryEospac>/$<TARGET_FILE_NAME:Exe_QueryEospac>
   TEST_ARGS "--version;--help"
 )
+
+# ---------------------------------------------------------------------------- #
+# End cdi_eospac/test/CMakeLists.txt
+# ---------------------------------------------------------------------------- #

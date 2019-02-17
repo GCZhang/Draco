@@ -4,11 +4,8 @@
  *  \brief  Provide a single place where physical constants (pi, speed of
  *          light, etc) are defined.
  *  \date   Fri Nov 07 10:04:52 2003
- *  \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *          All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ *  \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *          All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef __units_PhysicalConstants_hh__
@@ -23,8 +20,8 @@ namespace rtt_units {
 /*!
  * \class PhysicalConstants
  *
- * \brief A class to define and encapsulate physical and mathematical
- * constants in the current UnitSystem.
+ * \brief A class to define and encapsulate physical and mathematical constants
+ *        in the current UnitSystem.
  *
  * \sa rtt_units::UnitSystem
  * \sa rtt_units::UnitSystemType
@@ -32,7 +29,7 @@ namespace rtt_units {
  * \sa rtt_units::FundUnit
  * \sa Nuclide Chart
  *
- * Code Sample: 
+ * Code Sample:
  *
  * \verbatim
  * UnitSystem u( UnitSystem().getAstroUnits() );
@@ -42,14 +39,13 @@ namespace rtt_units {
  *                                          // AstroPhysics units.
  * \endverbatim
  *
- * Example 
  * \example test/tstPhysicalConstants.cc
  * This is the unit regression test for the PhysicalConstants class.  It
  * demonstrates typical usage.
  */
 //==============================================================================
 
-class DLL_PUBLIC_units PhysicalConstants {
+class PhysicalConstants {
 public:
   // Constructors.
   PhysicalConstants();
@@ -118,6 +114,11 @@ public:
   //! see permittivityOfFreeSpace()
   double epsi0() const { return permittivityOfFreeSpace(); }
 
+  //! accesses the classical electron radius (units of length)
+  double classicalElectronRadius() const { return d_classicalElectronRadius; }
+  //! see classicalElectronRadius()
+  double re() const { return classicalElectronRadius(); }
+
   //! accesses the electron mass (units of mass)
   double electronMass() const { return d_electronMass; }
   //! see electronMass()
@@ -170,6 +171,9 @@ private:
 
   //! [epsi0] PERMITTIVITY OF FREE SPACE (F/M)
   double const d_permittivityOfFreeSpace;
+
+  //! [re] Classical electron radius (M)
+  double const d_classicalElectronRadius;
 
   //! [me] ELECTRON REST MASS (KG)
   double const d_electronMass;

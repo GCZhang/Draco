@@ -4,11 +4,8 @@
  * \author Thomas M. Evans
  * \date   Thu Mar 21 16:56:17 2002
  * \brief  C4 MPI implementation.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "c4/config.h"
@@ -17,7 +14,6 @@
 #ifdef C4_MPI
 
 #include "C4_Functions.hh"
-#include "C4_MPI.hh"
 #include "C4_Req.hh"
 #include "C4_sys_times.h"
 
@@ -29,6 +25,12 @@ namespace rtt_c4 {
 
 MPI_Comm communicator = MPI_COMM_WORLD;
 bool initialized(false);
+
+//---------------------------------------------------------------------------//
+// Any source rank
+//---------------------------------------------------------------------------//
+
+const int any_source = MPI_ANY_SOURCE;
 
 //---------------------------------------------------------------------------//
 // Null source/destination rank
@@ -59,7 +61,7 @@ void finalize() {
   return;
 }
 
-//---------------------------------------------------------------------------------------//
+//---------------------------------------------------------------------------//
 
 void type_free(C4_Datatype &old_type) { MPI_Type_free(&old_type); }
 
@@ -100,11 +102,10 @@ void global_barrier() {
 double wall_clock_time() { return MPI_Wtime(); }
 // overloaded function (provide POSIX timer information).
 double wall_clock_time(DRACO_TIME_TYPE &now) {
-// obtain posix timer information and return it to the user via the
-// reference value argument "now".
+// obtain posix timer information and return it to the user via the reference
+// value argument "now".
 #ifdef WIN32
-  // now = time( NULL );
-  time(&now);
+  now = std::chrono::high_resolution_clock::now();
 #else
   times(&now);
 #endif
@@ -113,7 +114,6 @@ double wall_clock_time(DRACO_TIME_TYPE &now) {
 }
 
 //---------------------------------------------------------------------------//
-
 double wall_clock_resolution() { return MPI_Wtick(); }
 
 //---------------------------------------------------------------------------//
@@ -121,12 +121,14 @@ double wall_clock_resolution() { return MPI_Wtick(); }
 //---------------------------------------------------------------------------//
 
 bool probe(int source, int tag, int &message_size) {
+  // TODO: Change message_size to C4_Status to allow source = any_source
+  //Require(source == any_source || (source >= 0 && source < nodes()));
   Require(source >= 0 && source < nodes());
 
   int flag;
   MPI_Status status;
 
-  // post an MPI_Irecv (non-blocking receive)
+  // post a non-blocking probe
   MPI_Iprobe(source, tag, communicator, &flag, &status);
 
   if (!flag)
@@ -139,6 +141,8 @@ bool probe(int source, int tag, int &message_size) {
 
 //---------------------------------------------------------------------------//
 void blocking_probe(int source, int tag, int &message_size) {
+  // TODO: Change message_size to C4_Status to allow source = any_source
+  //Require(source == any_source || (source >= 0 && source < nodes()));
   Require(source >= 0 && source < nodes());
 
   MPI_Status status;
@@ -147,13 +151,14 @@ void blocking_probe(int source, int tag, int &message_size) {
 }
 
 //---------------------------------------------------------------------------//
-void wait_all(int count, C4_Req *requests) {
+void wait_all(unsigned count, C4_Req *requests) {
+
   // Nothing to do if count is zero.
   if (count == 0)
     return;
 
   std::vector<MPI_Request> array_of_requests(count);
-  for (int i = 0; i < count; ++i) {
+  for (unsigned i = 0; i < count; ++i) {
     if (requests[i].inuse())
       array_of_requests[i] = requests[i].r();
     else

@@ -3,11 +3,8 @@
  * author: Kelly Thompson
  * date  : Wednesday, Nov 23, 2011, 08:42 am
  * brief : wraper for omp.h
- * note  : Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-/*---------------------------------------------------------------------------*/
-/* $Id */
+ * note  : Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 /*---------------------------------------------------------------------------*/
 
 #ifndef rtt_c4_c4_omp_h

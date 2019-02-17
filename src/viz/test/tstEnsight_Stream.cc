@@ -4,11 +4,8 @@
  * \author Rob Lowrie
  * \date   Fri Nov 12 22:52:46 2004
  * \brief  Test for Ensight_Stream.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "ds++/Packing_Utils.hh"

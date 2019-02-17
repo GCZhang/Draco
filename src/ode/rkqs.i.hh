@@ -5,22 +5,18 @@
  * \date   Mon Sep 20 15:15:40 2004
  * \brief  Integrate an ordinary differential equation with local error
  *         control using fifth-order Cash-Karp Runge-Kutta steps.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2004-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef ode_rkqs_i_hh
 #define ode_rkqs_i_hh
 
-#include <algorithm>
-#include <cmath>
-
-// #include "rkqs.hh"
 #include "Function_Traits.hh"
 #include "ds++/Assert.hh"
+#include "ds++/Soft_Equivalence.hh"
+#include <algorithm>
+#include <cmath>
 
 namespace rtt_ode {
 
@@ -28,22 +24,20 @@ namespace rtt_ode {
 /*! Perform a single fifth-order Cash-Karp Runge-Kutta step.
  *
  * \arg \a Field A field type, such as \c double or \c std::complex<double>.
- * \arg \a Function A function type that maps \f$N+1\f$ variables to \f$N\f$
- * variables, supporting <code>operator()(double, const FieldVector &,
- * FieldVector &)</code>. 
- * 
+
+ * \arg \a Function A function type that maps \f$ N+1 \f$ variables to \f$ N \f$
+ *                  variables, supporting <code>operator()(double, const
+ *                  FieldVector &, FieldVector &)</code>.
+ *
  * \param y Values of dependent variables at start of step.
  * \param dydx Values of derivatives of dependent variables at start of step.
- * \param n Number of dependent variables.
  * \param x Dependent variable at start of step.
  * \param h Step size.
- * \param yout On return, contains values of dependent variables at end of
- * step. 
+ * \param yout On return, contains values of dependent variables at end of step.
  * \param yerr On return, contains estimated truncation error.
  * \param derivs Function for computing derivatives of dependent variables.
  *
  * \pre \c dydx.size()==y.size()
- *
  * \post \c yout.size()==y.size()
  * \post \c yerr.size()==y.size();
  */
@@ -68,7 +62,8 @@ void rkck(std::vector<Field> const &y, std::vector<Field> const &dydx, double x,
                       dc4 = c4 - 13525.0 / 55296.0, dc5 = -277.0 / 14336.0,
                       dc6 = c6 - 0.25;
 
-  const unsigned n = y.size();
+  Check(y.size() < UINT_MAX);
+  const unsigned n = static_cast<unsigned>(y.size());
 
   yout.resize(n);
   yerr.resize(n);
@@ -98,9 +93,8 @@ void rkck(std::vector<Field> const &y, std::vector<Field> const &dydx, double x,
   }
   derivs(x + a5 * h, ytemp, ak5);
   for (unsigned i = 0; i < n; i++) {
-    ytemp[i] = y[i] +
-               h * (b61 * dydx[i] + b62 * ak2[i] + b63 * ak3[i] + b64 * ak4[i] +
-                    b65 * ak5[i]);
+    ytemp[i] = y[i] + h * (b61 * dydx[i] + b62 * ak2[i] + b63 * ak3[i] +
+                           b64 * ak4[i] + b65 * ak5[i]);
   }
   derivs(x + a6 * h, ytemp, ak6);
   for (unsigned i = 0; i < n; i++) {
@@ -114,7 +108,7 @@ void rkck(std::vector<Field> const &y, std::vector<Field> const &dydx, double x,
 }
 
 //---------------------------------------------------------------------------//
-/*! 
+/*!
  * \brief Integrate an ordinary differential equation with local error
  * control using fifth-order Cash-Karp Runge-Kutta steps.
  *
@@ -160,7 +154,8 @@ void rkqs(std::vector<Field> &y, std::vector<Field> const &dydx, double &x,
 
   using std::vector;
 
-  const unsigned n = y.size();
+  Check(y.size() < UINT_MAX);
+  const unsigned n = static_cast<unsigned>(y.size());
 
   double const SAFETY = 0.9;
   double const PSHRNK = -0.25;
@@ -184,7 +179,7 @@ void rkqs(std::vector<Field> &y, std::vector<Field> const &dydx, double &x,
     double htemp = SAFETY * h * std::pow(errmax, PSHRNK);
     h = (h >= 0 ? std::max(htemp, 0.1 * h) : std::min(htemp, 0.1 * h));
     double xnew = x + h;
-    if (xnew == x)
+    if (rtt_dsxx::soft_equiv(xnew, x))
       throw std::range_error("stepsize underflow in rkqs");
   }
   if (errmax > ERRCON)

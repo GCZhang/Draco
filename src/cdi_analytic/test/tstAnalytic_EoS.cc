@@ -4,11 +4,8 @@
  * \author Thomas M. Evans
  * \date   Thu Oct  4 11:45:19 2001
  * \brief  Analytic_EoS test.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "cdi/CDI.hh"
@@ -18,14 +15,13 @@
 
 using namespace std;
 
+using rtt_cdi::CDI;
+using rtt_cdi::EoS;
 using rtt_cdi_analytic::Analytic_EoS;
 using rtt_cdi_analytic::Analytic_EoS_Model;
 using rtt_cdi_analytic::Polynomial_Specific_Heat_Analytic_EoS_Model;
-using rtt_cdi::CDI;
-using rtt_cdi::EoS;
-using rtt_dsxx::SP;
 using rtt_dsxx::soft_equiv;
-using rtt_dsxx::dynamic_pointer_cast;
+using std::dynamic_pointer_cast;
 
 //---------------------------------------------------------------------------//
 // TESTS
@@ -37,7 +33,7 @@ void analytic_eos_test(rtt_dsxx::UnitTest &ut) {
   // make an analytic model (polynomial specific heats)
   // elec specific heat = a + bT^c
   // ion specific heat  = d + eT^f
-  SP<Polynomial_Model> model(
+  shared_ptr<Polynomial_Model> model(
       new Polynomial_Model(0.0, 1.0, 3.0, 0.2, 0.0, 0.0));
 
   if (!model)
@@ -58,22 +54,21 @@ void analytic_eos_test(rtt_dsxx::UnitTest &ut) {
     double Ui = 0.2 * T;
 
     // specific heats
-    if (analytic.getElectronHeatCapacity(T, rho) != Cve)
+    if (!soft_equiv(analytic.getElectronHeatCapacity(T, rho), Cve))
       ITFAILS;
-    if (analytic.getIonHeatCapacity(T, rho) != Cvi)
+    if (!soft_equiv(analytic.getIonHeatCapacity(T, rho), Cvi))
       ITFAILS;
 
     // specific internal energies
     if (!soft_equiv(analytic.getSpecificElectronInternalEnergy(T, rho), Ue))
       ITFAILS;
-
     if (!soft_equiv(analytic.getSpecificIonInternalEnergy(T, rho), Ui))
       ITFAILS;
 
     // everything else is zero
-    if (analytic.getNumFreeElectronsPerIon(T, rho) != 0.0)
+    if (!soft_equiv(analytic.getNumFreeElectronsPerIon(T, rho), 0.0))
       ITFAILS;
-    if (analytic.getElectronThermalConductivity(T, rho) != 0.0)
+    if (!soft_equiv(analytic.getElectronThermalConductivity(T, rho), 0.0))
       ITFAILS;
   }
 
@@ -94,16 +89,8 @@ void analytic_eos_test(rtt_dsxx::UnitTest &ut) {
 
   // field check
   {
-    vector<double> T(6);
+    vector<double> T = {0.993, 0.882, 0.590, 0.112, 0.051, 0.001};
     vector<double> rho(6);
-
-    T[0] = .993;
-    T[1] = .882;
-    T[2] = .590;
-    T[3] = .112;
-    T[4] = .051;
-    T[5] = .001;
-
     std::fill(rho.begin(), rho.end(), 3.0);
     rho[3] = 2.5;
 
@@ -146,19 +133,19 @@ void analytic_eos_test(rtt_dsxx::UnitTest &ut) {
         ITFAILS;
 
       // all else are zero
-      if (nfe[i] != 0.0)
+      if (!soft_equiv(nfe[i], 0.0))
         ITFAILS;
-      if (etc[i] != 0.0)
+      if (!soft_equiv(etc[i], 0.0))
         ITFAILS;
     }
   }
 
   // Test the get_Analytic_Model() member function.
   {
-    SP<Polynomial_Model const> myEoS_model =
+    shared_ptr<Polynomial_Model const> myEoS_model =
         dynamic_pointer_cast<Polynomial_Model const>(
             analytic.get_Analytic_Model());
-    SP<Polynomial_Model const> expected_model(model);
+    shared_ptr<Polynomial_Model const> expected_model(model);
 
     if (expected_model == myEoS_model)
       PASSMSG("get_Analytic_Model() returned the expected EoS model.");
@@ -192,7 +179,7 @@ void analytic_eos_test(rtt_dsxx::UnitTest &ut) {
   // make an analytic model like Su-Olson (polynomial specific heats)
   // elec specific heat = a + bT^c
   // ion specific heat  = d + eT^f
-  SP<Polynomial_Model> so_model(
+  shared_ptr<Polynomial_Model> so_model(
       new Polynomial_Model(0.0, 54880.0, 3.0, 0.2, 0.0, 0.0));
   // make an analtyic eos
   Analytic_EoS so_analytic(so_model);
@@ -259,7 +246,6 @@ void analytic_eos_test(rtt_dsxx::UnitTest &ut) {
 }
 
 //---------------------------------------------------------------------------//
-
 void CDI_test(rtt_dsxx::UnitTest &ut) {
   typedef Polynomial_Specific_Heat_Analytic_EoS_Model Polynomial_Model;
 
@@ -267,14 +253,14 @@ void CDI_test(rtt_dsxx::UnitTest &ut) {
   CDI eosdata;
 
   // analytic model
-  SP<Analytic_EoS_Model> model(
+  shared_ptr<Analytic_EoS_Model> model(
       new Polynomial_Model(0.0, 1.0, 3.0, 0.0, 0.0, 0.0));
 
   // assign the eos object
-  SP<Analytic_EoS> analytic_eos(new Analytic_EoS(model));
+  shared_ptr<Analytic_EoS> analytic_eos(new Analytic_EoS(model));
 
   // EoS object
-  SP<const EoS> eos = analytic_eos;
+  shared_ptr<const EoS> eos = analytic_eos;
   if (typeid(*eos) != typeid(Analytic_EoS))
     ITFAILS;
 
@@ -286,16 +272,8 @@ void CDI_test(rtt_dsxx::UnitTest &ut) {
     FAILMSG("Can't reference EoS smart pointer");
 
   // make temperature and density fields
-  vector<double> T(6);
+  vector<double> T = {0.993, 0.882, 0.590, 0.112, 0.051, 0.001};
   vector<double> rho(6);
-
-  T[0] = .993;
-  T[1] = .882;
-  T[2] = .590;
-  T[3] = .112;
-  T[4] = .051;
-  T[5] = .001;
-
   std::fill(rho.begin(), rho.end(), 3.0);
   rho[3] = 2.5;
 
@@ -339,13 +317,13 @@ void CDI_test(rtt_dsxx::UnitTest &ut) {
         ITFAILS;
 
       // all else are zero
-      if (Cvi[i] != 0.0)
+      if (!soft_equiv(Cvi[i], 0.0))
         ITFAILS;
-      if (iie[i] != 0.0)
+      if (!soft_equiv(iie[i], 0.0))
         ITFAILS;
-      if (nfe[i] != 0.0)
+      if (!soft_equiv(nfe[i], 0.0))
         ITFAILS;
-      if (etc[i] != 0.0)
+      if (!soft_equiv(etc[i], 0.0))
         ITFAILS;
     }
   }
@@ -357,12 +335,12 @@ void CDI_test(rtt_dsxx::UnitTest &ut) {
   bool caught = false;
   try {
     eosdata.eos();
-  } catch (const rtt_dsxx::assertion &ass) {
-    PASSMSG("Good, caught an unreferenced EoS SP!");
+  } catch (const rtt_dsxx::assertion & /* except */) {
+    PASSMSG("Good, caught an unreferenced EoS shared_ptr!");
     caught = true;
   }
   if (!caught)
-    FAILMSG("Failed to catch an unreferenced SP<EoS>!");
+    FAILMSG("Failed to catch an unreferenced shared_ptr<EoS>!");
 
   // now assign the analytic eos to CDI directly
   eosdata.setEoS(analytic_eos);
@@ -405,13 +383,13 @@ void CDI_test(rtt_dsxx::UnitTest &ut) {
         ITFAILS;
 
       // all else are zero
-      if (Cvi[i] != 0.0)
+      if (!soft_equiv(Cvi[i], 0.0))
         ITFAILS;
-      if (iie[i] != 0.0)
+      if (!soft_equiv(iie[i], 0.0))
         ITFAILS;
-      if (nfe[i] != 0.0)
+      if (!soft_equiv(nfe[i], 0.0))
         ITFAILS;
-      if (etc[i] != 0.0)
+      if (!soft_equiv(etc[i], 0.0))
         ITFAILS;
     }
   }
@@ -420,7 +398,6 @@ void CDI_test(rtt_dsxx::UnitTest &ut) {
 }
 
 //---------------------------------------------------------------------------//
-
 void packing_test(rtt_dsxx::UnitTest &ut) {
   typedef Polynomial_Specific_Heat_Analytic_EoS_Model Polynomial_Model;
 
@@ -428,11 +405,11 @@ void packing_test(rtt_dsxx::UnitTest &ut) {
 
   {
     // make an analytic model (polynomial specific heats)
-    SP<Polynomial_Model> model(
+    shared_ptr<Polynomial_Model> model(
         new Polynomial_Model(0.0, 1.0, 3.0, 0.2, 0.0, 0.0));
 
     // make an analtyic eos
-    SP<EoS> eos(new Analytic_EoS(model));
+    shared_ptr<EoS> eos(new Analytic_EoS(model));
 
     packed = eos->pack();
   }
@@ -451,9 +428,9 @@ void packing_test(rtt_dsxx::UnitTest &ut) {
     double Ui = 0.2 * T;
 
     // specific heats
-    if (neos.getElectronHeatCapacity(T, rho) != Cve)
+    if (!soft_equiv(neos.getElectronHeatCapacity(T, rho), Cve))
       ITFAILS;
-    if (neos.getIonHeatCapacity(T, rho) != Cvi)
+    if (!soft_equiv(neos.getIonHeatCapacity(T, rho), Cvi))
       ITFAILS;
 
     // specific internal energies
@@ -464,9 +441,9 @@ void packing_test(rtt_dsxx::UnitTest &ut) {
       ITFAILS;
 
     // everything else is zero
-    if (neos.getNumFreeElectronsPerIon(T, rho) != 0.0)
+    if (!soft_equiv(neos.getNumFreeElectronsPerIon(T, rho), 0.0))
       ITFAILS;
-    if (neos.getElectronThermalConductivity(T, rho) != 0.0)
+    if (!soft_equiv(neos.getElectronThermalConductivity(T, rho), 0.0))
       ITFAILS;
   }
 
@@ -477,7 +454,6 @@ void packing_test(rtt_dsxx::UnitTest &ut) {
 }
 
 //---------------------------------------------------------------------------//
-
 int main(int argc, char *argv[]) {
   rtt_dsxx::ScalarUnitTest ut(argc, argv, rtt_dsxx::release);
   try {

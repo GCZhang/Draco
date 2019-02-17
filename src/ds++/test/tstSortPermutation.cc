@@ -1,13 +1,10 @@
 //----------------------------------*-C++-*----------------------------------//
 /*!
- * \file   test/ds++/tstSortPermutation.cc
+ * \file   ds++/test/tstSortPermutation.cc
  * \author Randy M. Roberts
  * \date   Mon Feb 14 14:20:45 2000
- * \note   Copyright (c) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id$
+ * \note   Copyright (c) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #include "ds++/Release.hh"
@@ -49,11 +46,11 @@ inline bool testit(const std::string & /*name*/, IT first, IT last) {
   std::vector<value_type> vv1(first, last);
   std::vector<value_type> vv2;
 
-  for (size_t i = 0; i < vv1.size(); i++)
+  for (unsigned i = 0; i < vv1.size(); i++)
     vv2.push_back(vv1[lfsp[i]]);
 
   IT lfi = first;
-  for (size_t i = 0; lfi != last; i++, ++lfi)
+  for (unsigned i = 0; lfi != last; i++, ++lfi)
     vv1[lfsp.inv(i)] = *lfi;
 
   std::copy(first, last, std::ostream_iterator<value_type>(std::cout, " "));
@@ -87,11 +84,11 @@ inline bool testit(const std::string & /*name*/, IT first, IT last,
   std::vector<value_type> vv1(first, last);
   std::vector<value_type> vv2;
 
-  for (size_t i = 0; i < vv1.size(); i++)
+  for (unsigned i = 0; i < vv1.size(); i++)
     vv2.push_back(vv1[lfsp[i]]);
 
   IT lfi = first;
-  for (size_t i = 0; lfi != last; i++, ++lfi)
+  for (unsigned i = 0; lfi != last; i++, ++lfi)
     vv1[lfsp.inv(i)] = *lfi;
 
   std::copy(first, last, std::ostream_iterator<value_type>(std::cout, " "));
@@ -145,7 +142,6 @@ template <typename F> struct evenIsLess {
 };
 
 //---------------------------------------------------------------------------//
-
 int main(int /*argc*/, char * /*argv*/ []) {
   cout << "Initiating test of the SortPermutation.\n";
 

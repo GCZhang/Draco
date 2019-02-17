@@ -4,7 +4,7 @@
  * \author Kelly Thompson
  * \date   Thu Jun  1 17:15:05 2006
  * \brief  Declaration file for encapsulation of Draco parallel unit tests.
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
  *         All rights reserved.
  *
  * This file provides a definition for ParallelUnitTest.  The purpose of this
@@ -12,14 +12,12 @@
  * tests.
  */
 //---------------------------------------------------------------------------//
-// $Id$
-//---------------------------------------------------------------------------//
 
 #ifndef c4_ParallelUnitTest_hh
 #define c4_ParallelUnitTest_hh
 
 #include "C4_Functions.hh"
-#include "ds++/UnitTest.hh"
+#include "ds++/ScalarUnitTest.hh"
 
 namespace rtt_c4 {
 
@@ -31,8 +29,7 @@ namespace rtt_c4 {
  * This class inherits from UnitTest.  Much of the documentation for the
  * services of this class is provided in UnitTest.hh
  *
- * \sa rtt_dsxx::UnitTest for detailed description of all the UnitTest
- * classes.
+ * \sa rtt_dsxx::UnitTest for detailed description of all the UnitTest classes.
  *
  * \par Code Sample:
  * \code
@@ -49,19 +46,19 @@ namespace rtt_c4 {
  * \endcode
  *
  * \test All of the member functions of this class are tested by
- * ds++/test/tstScalarUnitTest.cc, including the early exit caused by
- * \c --version on the command line.
+ *       ds++/test/tstScalarUnitTest.cc, including the early exit caused by
+ *       \c --version on the command line.
  *
- * \warning The output from this class is closely tied to the DBS python
- * script \c tools/regression_filter.py that is used during \c gmake \c check.
- * Changing the format or keyword in the output streams from this class should
- * be coordinated with the regular expression matches found in \c
- * tools/regression_filter.py.
+ * \warning The output from this class is closely tied to the DBS python script
+ *       \c tools/regression_filter.py that is used during \c gmake \c check.
+ *       Changing the format or keyword in the output streams from this class
+ *       should be coordinated with the regular expression matches found in \c
+ *       tools/regression_filter.py.
  *
  * \warning The differences between ScalarUnitTest, ParallelUnitTest and
- * ApplicationUnitTest are correlated to the DBS m4 macros \c AC_RUNTESTS and
- * \c AC_TEST_APPLICATION.  Changes to these classes should be coordinated with
- * changes to these DBS m4 macro command
+ *       ApplicationUnitTest are correlated to the DBS m4 macros \c AC_RUNTESTS
+ *       and \c AC_TEST_APPLICATION.  Changes to these classes should be
+ *       coordinated with changes to these DBS m4 macro command
  */
 /*!
  * \example c4/test/tstParallelUnitTest.cc
@@ -76,7 +73,8 @@ public:
   //! Default constructor.
   DLL_PUBLIC_c4 ParallelUnitTest(int &argc, char **&argv,
                                  string_fp_void release_,
-                                 std::ostream &out_ = std::cout);
+                                 std::ostream &out_ = std::cout,
+                                 bool verbose_ = true);
 
   //!  The copy constructor is disabled.
   ParallelUnitTest(ParallelUnitTest const &rhs);
@@ -93,9 +91,28 @@ public:
 
   //! Provide a report of the number of unit test passes and fails.
   DLL_PUBLIC_c4 void status(void);
+
+  DLL_PUBLIC_c4 virtual bool check_all(bool good, std::string const &checkmsg,
+                                       bool fatal = false);
 };
 
+//----------------------------------------------------------------------------//
+/*!
+ * \brief Run a parallel unit test.
+ *
+ * \param[in] argc Number of command line arguments
+ * \param[in] argv Command line arguments
+ * \param[in] release Release string
+ * \param[in] lambda Lambda function defining the test.
+ * \return EXIT_SUCCESS or EXIT_FAILURE as appropriate.
+ */
+template <typename... Lambda, typename Release>
+int do_parallel_unit_test(int argc, char *argv[], Release release,
+                          Lambda const &... lambda);
+
 } // end namespace rtt_c4
+
+#include "ParallelUnitTest.i.hh"
 
 #endif // c4_ParallelUnitTest_hh
 

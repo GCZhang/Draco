@@ -3,29 +3,24 @@
  * \file   memory/memory.hh
  * \author Kent G. Budge
  * \brief  memory utilities for diagnostic purposes
- * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
- *         All rights reserved.
- */
-//---------------------------------------------------------------------------//
-// $Id: memory.hh 7239 2013-10-07 20:29:39Z kellyt $
+ * \note   Copyright (C) 2016-2019 Triad National Security, LLC.
+ *         All rights reserved. */
 //---------------------------------------------------------------------------//
 
 #ifndef memory_memory_hh
 #define memory_memory_hh
 
 #include "ds++/config.h" // defines DRACO_DIAGNOSTICS
+#include <cstdint>       // cstdint not available on PGI
 #include <cstdlib>
 #include <iostream>
-#include <stdint.h> // cstdint not available on PGI
 
 namespace rtt_memory {
 
 bool set_memory_checking(bool new_status);
-
 uint64_t total_allocation();
 uint64_t peak_allocation();
 uint64_t largest_allocation();
-
 void report_leaks(std::ostream &);
 
 //! Register rtt_dsxx::print_stacktrace() as the respose to std::bad_alloc.
